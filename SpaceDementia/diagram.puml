@@ -1,0 +1,523 @@
+@startuml SpaceDementia
+
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+skinparam noteFontSize 9
+skinparam linetype ortho
+
+package pygame {
+    class Surface
+}
+
+class Config {
+    {static} WIDTH: int
+    {static} HEIGHT: int
+    {static} WHITE: tuple
+    {static} RED: tuple
+    {static} BLACK: tuple
+    {static} YELLOW: tuple
+    {static} CYAN: tuple
+    {static} MAGENTA: tuple
+}
+
+class Game {
+    - screen: Surface
+    - modo_2j: bool
+    - mundo_id: int
+    - nivel: int
+    - config: dict
+    - estado: str
+    - estado_timer: int
+    - player1: Player
+    - player2: Player
+    - bullets: List
+    - enemy_bullets: List
+    - enemies: List
+    - explosions: List
+    - boss: Boss
+    - sound: SoundManager
+    - background: Background
+    - obstaculos: List
+    - asteroides: List
+    - paused: bool
+    - gravedad_invertida: bool
+    - gravedad_timer: int
+    - oleada_num: int
+    - oleadas_objetivo: int
+    - _tienda: Tienda
+    - _tienda_turno: int
+    + run(): str
+    + disparar_jugador(player): void
+    - _manejar_tecla(key): str
+    - _update(): void
+    - _update_jugando(): void
+    - _update_boss(): void
+    - _iniciar_oleada(): void
+    - _spawn_enemigos(tipo, n): void
+    - _generar_evento_entre_oleadas(): void
+    - _usar_mega_bomba(player): void
+    - _avanzar(): void
+    - _draw(): void
+    - _draw_hud(): void
+    - _draw_overlay(): void
+    - _lista_jugadores(): List
+    - _jugadores_vivos(): List
+    - _todos_muertos(): bool
+}
+
+note right of Game
+  Estados: transicion, jugando,
+  completado, tienda, alerta,
+  boss, game_over, victoria
+  --
+  Modo 1J y 2J cooperativo
+  Sistema de oleadas por nivel
+  Anomalias entre oleadas
+end note
+
+class Player {
+    - x: float
+    - y: float
+    - _pos_inicial: tuple
+    - size: int
+    - speed: int
+    - velocidad_base: int
+    - _life: int
+    - jugador_id: int
+    - tilt: float
+    - _score: int
+    - _monedas: int
+    - mega_bombas: int
+    - disparo_doble: bool
+    - disparo_plasma: bool
+    - _max_balas: int
+    - _shoot_cooldown: int
+    - emp_activo: bool
+    - emp_timer: int
+    - powerups: dict
+    - powerups_temporales: dict
+    + life: int <<property>>
+    + score: int <<property>>
+    + monedas: int <<property>>
+    + update(): void
+    + move(direction: str): void
+    + draw(screen): void
+    + add_powerup(tipo): void
+    + remove_powerup(tipo): void
+    + has_powerup(tipo): bool
+    + tiene_escudo(): bool
+    + consumir_escudo(): bool
+}
+
+note right of Player
+  J1: nave azul (player_b)
+  J2: nave roja (player_r)
+  Sprite segun tilt vertical
+  EMP bloquea disparo temporal
+end note
+
+abstract class Enemy {
+    - x: float
+    - y: float
+    - size: int
+    - speed: int
+    - color_sprite: str
+    - vida: int
+    - hit_flash: int
+    - direction_y: int
+    {static} PUNTOS: int
+    {static} MONEDAS: int
+    + shoot(): Bullet
+    + shoot_apuntado(px, py): Bullet
+    + recibir_daño(daño): bool
+    + move(): void
+    + shoot_frame(jugadores): List
+    + draw(screen): void
+}
+
+note right of Enemy
+  Clase base de enemigos.
+  3 colores sprite: r, g, b
+  Sprite tipo 1 (drone) o 2 (caza)
+end note
+
+class EnemigoNormal {
+    {static} PUNTOS: int = 10
+    {static} MONEDAS: int = 5
+}
+
+note bottom of EnemigoNormal
+  Drone basico.
+  Avanza recto, disparo aleatorio.
+end note
+
+class EnemigoAgil {
+    {static} PUNTOS: int = 20
+    {static} MONEDAS: int = 10
+    + move(): void
+}
+
+note bottom of EnemigoAgil
+  Caza rapido.
+  Movimiento zigzag vertical.
+end note
+
+class EnemigoRafaga {
+    - burst_cooldown: int
+    - burst_disparos: int
+    {static} PUNTOS: int = 30
+    {static} MONEDAS: int = 15
+    + shoot_frame(jugadores): List
+}
+
+note bottom of EnemigoRafaga
+  Dispara rafagas de 3 balas.
+  Cooldown 120 frames entre rafagas.
+end note
+
+class EnemigoApuntador {
+    - disparo_timer: int
+    {static} PUNTOS: int = 25
+    {static} MONEDAS: int = 12
+    + move(): void
+    + shoot_frame(jugadores): List
+    + draw(screen): void
+}
+
+note bottom of EnemigoApuntador
+  Apunta al jugador mas cercano.
+  Reticula visual parpadeante.
+end note
+
+class Boss {
+    - x: float
+    - y: float
+    - size: int
+    - _vida: int
+    - vida_max: int
+    - fase: int
+    - speed: float
+    - direction_y: int
+    - entrando: bool
+    - _cargando: bool
+    - _carga_timer: int
+    - _disparo_cooldown: int
+    - disparos_pendientes: List
+    - refuerzos_pendientes: int
+    {static} VIDA_MAX: int
+    {static} X_BATALLA: int
+    + vida: int <<property>>
+    + esta_en_fase_critica: bool <<property>>
+    + update(): void
+    + recibir_daño(daño): bool
+    + esta_muerto(): bool
+    + draw(screen): void
+    - _actualizar_fase(): void
+    - _disparar(): void
+    - _flash_rojo(screen): void
+    - _dibujar_indicador_carga(screen): void
+    - _dibujar_barra_vida(screen): void
+}
+
+note right of Boss
+  3 fases segun % de vida.
+  F1: disparo recto
+  F2: abanico 3 balas + refuerzos
+  F3: rafaga radial 8 dir + embestida
+end note
+
+class Bullet {
+    - x: float
+    - y: float
+    - speed: int
+    - direction: str
+    - es_enemigo: bool
+    - es_mega: bool
+    - es_bala_boss: bool
+    - es_proton: bool
+    - daño: int
+    - jugador_id: int
+    - angulo: float
+    - vx: float
+    - vy: float
+    - frame: int
+    + move(): void
+    + draw(screen): void
+}
+
+class Explosion {
+    - x: int
+    - y: int
+    - tamaño: str
+    - _tick: int
+    - _frame_sprite: int
+    {static} _FRAMES_POR_SPRITE: int
+    {static} _MAX_FRAMES: dict
+    + update(): void
+    + draw(screen): void
+    + is_dead(): bool
+}
+
+note right of Explosion
+  3 tamanos con sprites:
+  grande (11f, 192px) - boss
+  mediana (9f, 128px) - enemigos
+  pequena (9f, 80px) - impactos
+end note
+
+class Tienda {
+    - game: Game
+    - player: Player
+    - jugador_num: int
+    - seleccion: int
+    - activa: bool
+    - _items: List
+    {static} ITEMS_BASE: List
+    {static} ITEM_REVIVIR: dict
+    + handle_key(key): void
+    + draw(screen): void
+    - _intentar_compra(): void
+    - _estado_item(id): str
+    - _calcular_items(): List
+}
+
+note right of Tienda
+  Items: escudo, disparo doble,
+  plasma, vida, bomba, revivir.
+  En 2J: turno J1 luego J2.
+  Revivir solo si companero muerto.
+end note
+
+class Menu {
+    - screen: Surface
+    - _seleccion: int
+    - _opciones: List
+    - _bg: Background
+    - _sound: SoundManager
+    + run(): str
+    - _mostrar_controles(): void
+    - _dibujar(): void
+    - _dibujar_titulo(): void
+    - _dibujar_opciones(): void
+    - _dibujar_overlay_controles(screen): void
+}
+
+class Background {
+    - nivel: int
+    - tema: dict
+    - vel_base: float
+    - _bg_offset: float
+    - estrellas_fondo: List
+    - estrellas_medias: List
+    - estrellas_rapidas: List
+    - planetas: List
+    - frame_count: int
+    + update(nivel, velocidad): void
+    + draw(screen): void
+    - _generar_espacio(vel): void
+    - _dibujar_espacio(screen): void
+}
+
+class SoundManager {
+    - _sonidos: dict
+    - _activo: bool
+    - _muted: bool
+    - _disparo_cooldown: int
+    + play(nombre): void
+    + update(): void
+    + toggle_mute(): bool
+    + is_muted(): bool
+    + iniciar_musica(tipo): void
+    + detener_musica(): void
+    + pausar_musica(): void
+    + reanudar_musica(): void
+    - _generar_pew(f0, f1, ms): Sound
+    - _cargar(archivo): Sound
+}
+
+class AssetLoader <<module>> {
+    {static} _sprites: dict
+    {static} inicializar(): void
+    {static} get_player_frame(tilt, mega, jid): Surface
+    {static} get_enemy_frame(tipo, color, dir): Surface
+    {static} get_boss_sprite(): Surface
+    {static} get_explosion_frame(tam, idx): Surface
+    {static} get_plasma_frame(frame): Surface
+    {static} get_plasma_frame_p2(frame): Surface
+    {static} get_vulcan_frame(frame): Surface
+    {static} get_proton_frame(frame): Surface
+    {static} get_exhaust_frame(frame): Surface
+    {static} get_bg(): Surface
+    {static} get_planet_sprite(nombre): Surface
+    {static} get_asteroid_sprite(idx): Surface
+}
+
+abstract class Obstaculo {
+    # vida: int
+    {static} causa_impacto_fisico: bool
+    + {abstract} update(): void
+    + {abstract} draw(screen): void
+    + is_dead(): bool
+    + afectar_jugador(jugador): bool
+    + afectar_jugadores(jugadores): List
+}
+
+note right of Obstaculo
+  Clase base para todas
+  las anomalias espaciales.
+  Colisionan solo con jugadores.
+end note
+
+class AgujeronNegro {
+    - x: float
+    - y: float
+    - _frame: int
+    {static} RADIO: int
+    {static} RADIO_GRAVEDAD: int
+    {static} FUERZA: float
+    {static} DURACION: int
+    + update(): void
+    + afectar_jugador(jugador): bool
+    + draw(screen): void
+}
+
+class Asteroide {
+    - x: float
+    - y: float
+    - radio: int
+    - velocidad: float
+    - _variante: int
+    - _ang_rot: float
+    - _vel_rot: float
+    - _destruido: bool
+    {static} causa_impacto_fisico: bool
+    + update(): void
+    + afectar_jugador(jugador): bool
+    + draw(screen): void
+    + is_dead(): bool
+}
+
+class ZonaInterferencia {
+    - y: float
+    - _vel_y: float
+    - _frame: int
+    {static} ALTO: int
+    {static} DURACION: int
+    + update(): void
+    + afectar_jugador(jugador): bool
+    + draw(screen): void
+}
+
+class Meteoro {
+    - x: float
+    - y: float
+    - vx: float
+    - vy: float
+    - radio: int
+    - _estela: List
+    - _vivo: bool
+    + move(): void
+    + is_dead(): bool
+    + colision(jugador): bool
+    + draw(screen): void
+}
+
+note bottom of Meteoro
+  Proyectil individual de
+  LluviaMeteoros. Clase privada.
+end note
+
+class LluviaMeteoros {
+    - meteoros: List
+    - _frame: int
+    {static} DURACION: int
+    {static} causa_impacto_fisico: bool
+    + update(): void
+    + afectar_jugadores(jugadores): List
+    + draw(screen): void
+    + is_dead(): bool
+}
+
+class PulsoEMP {
+    - x: float
+    - y: float
+    - radio: float
+    - _frame: int
+    - _golpeados: set
+    {static} RADIO_MAX: int
+    {static} DURACION: int
+    + update(): void
+    + afectar_jugador(jugador): bool
+    + draw(screen): void
+}
+
+note right of PulsoEMP
+  Onda expansiva circular.
+  Bloquea el disparo del jugador
+  por 3 segundos (90 frames).
+end note
+
+class Worlds <<module>> {
+    {static} MUNDOS: List
+    {static} obtener_mundo(id): dict
+}
+
+note right of Worlds
+  5 mundos con config:
+  colores, enemigos, oleadas,
+  boss, velocidades.
+  Sector Nebulosa - Vacio Final.
+end note
+
+' ══════════════ Herencia ══════════════
+
+Enemy <|-- EnemigoNormal
+Enemy <|-- EnemigoAgil
+Enemy <|-- EnemigoRafaga
+Enemy <|-- EnemigoApuntador
+
+Obstaculo <|-- AgujeronNegro
+Obstaculo <|-- Asteroide
+Obstaculo <|-- ZonaInterferencia
+Obstaculo <|-- LluviaMeteoros
+Obstaculo <|-- PulsoEMP
+
+' ══════════════ Composicion ══════════════
+
+LluviaMeteoros *-- "20..30" Meteoro : meteoros
+
+Game *-- "1" Player : player1
+Game *-- "0..1" Player : player2
+Game *-- "0..*" Enemy : enemies
+Game *-- "0..*" Bullet : bullets
+Game *-- "0..*" Explosion : explosions
+Game *-- "0..1" Boss : boss
+Game *-- "1" Background : background
+Game *-- "1" SoundManager : sound
+Game *-- "0..1" Tienda : _tienda
+Game *-- "0..*" Obstaculo : obstaculos
+
+Menu *-- "1" Background : _bg
+Menu *-- "1" SoundManager : _sound
+
+' ══════════════ Asociaciones ══════════════
+
+Enemy --> Bullet : crea
+Boss --> Bullet : crea
+Tienda --> Player : modifica
+
+Game ..> Config : usa
+Game ..> Worlds : obtener_mundo()
+Game ..> AssetLoader : sprites
+
+Player ..> AssetLoader : get_player_frame()
+Enemy ..> AssetLoader : get_enemy_frame()
+Boss ..> AssetLoader : get_boss_sprite()
+Bullet ..> AssetLoader : get_plasma/vulcan/proton()
+Explosion ..> AssetLoader : get_explosion_frame()
+Background ..> AssetLoader : get_bg()
+Asteroide ..> AssetLoader : get_asteroid_sprite()
+
+Game --> Surface : renderiza
+
+@enduml

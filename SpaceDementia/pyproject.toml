@@ -1,0 +1,17 @@
+[project]
+name = "spacedementia"
+version = "0.1.0"
+description = "Aprendiendo Pygame"
+authors = [
+    {name = "Navarro",email = "Navarrojuan212@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pygame (>=2.6,<3.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
