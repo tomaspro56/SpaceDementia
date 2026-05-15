@@ -1,5 +1,3 @@
-import pygame
-
 import asset_loader
 
 

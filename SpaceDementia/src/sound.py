@@ -56,13 +56,6 @@ class SoundManager:
             fase += 2.0 * math.pi * freq / sample_rate
         return pygame.mixer.Sound(buffer=b"".join(muestras))
 
-    def _recortar(self, sonido, ms):
-        """Retorna una copia del sonido recortada a los primeros ms milisegundos."""
-        raw = sonido.get_raw()
-        bytes_por_ms = len(raw) // max(1, int(sonido.get_length() * 1000))
-        recortado = raw[:bytes_por_ms * ms]
-        return pygame.mixer.Sound(buffer=recortado)
-
     def _cargar(self, nombre_archivo):
         """Carga un archivo de sonido. Retorna None si falla."""
         ruta = os.path.join(_AUDIO_DIR, nombre_archivo)

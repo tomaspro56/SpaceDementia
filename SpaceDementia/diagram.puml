@@ -9,16 +9,25 @@ package pygame {
     class Surface
 }
 
-class Config {
+class Config <<module>> {
     {static} WIDTH: int
     {static} HEIGHT: int
     {static} WHITE: tuple
     {static} RED: tuple
+    {static} GREEN: tuple
+    {static} BLUE: tuple
     {static} BLACK: tuple
     {static} YELLOW: tuple
     {static} CYAN: tuple
     {static} MAGENTA: tuple
+    {static} set_dimensions(w, h): void
 }
+
+note right of Config
+  WIDTH y HEIGHT se inicializan
+  desde main.py tras crear la
+  ventana (set_dimensions).
+end note
 
 class Game {
     - screen: Surface
@@ -102,9 +111,6 @@ class Player {
     + update(): void
     + move(direction: str): void
     + draw(screen): void
-    + add_powerup(tipo): void
-    + remove_powerup(tipo): void
-    + has_powerup(tipo): bool
     + tiene_escudo(): bool
     + consumir_escudo(): bool
 }
@@ -133,6 +139,7 @@ abstract class Enemy {
     + move(): void
     + shoot_frame(jugadores): List
     + draw(screen): void
+    # {abstract} _get_tipo_sprite(): str
 }
 
 note right of Enemy
@@ -189,6 +196,20 @@ note bottom of EnemigoApuntador
   Reticula visual parpadeante.
 end note
 
+class EnemigoKamikaze {
+    - _target_player: Player
+    {static} PUNTOS: int = 35
+    {static} MONEDAS: int = 18
+    + move(): void
+    + shoot_frame(jugadores): List
+}
+
+note bottom of EnemigoKamikaze
+  Persigue al jugador sin disparar.
+  Velocidad x1.4, vida 2.
+  No aparece en Mundo 1 Nivel 1.
+end note
+
 class Boss {
     - x: float
     - y: float
@@ -205,7 +226,7 @@ class Boss {
     - disparos_pendientes: List
     - refuerzos_pendientes: int
     {static} VIDA_MAX: int
-    {static} X_BATALLA: int
+    - X_BATALLA: int
     + vida: int <<property>>
     + esta_en_fase_critica: bool <<property>>
     + update(): void
@@ -408,7 +429,7 @@ class ZonaInterferencia {
     + draw(screen): void
 }
 
-class Meteoro {
+class "_Meteoro" as Meteoro {
     - x: float
     - y: float
     - vx: float
@@ -475,6 +496,7 @@ Enemy <|-- EnemigoNormal
 Enemy <|-- EnemigoAgil
 Enemy <|-- EnemigoRafaga
 Enemy <|-- EnemigoApuntador
+Enemy <|-- EnemigoKamikaze
 
 Obstaculo <|-- AgujeronNegro
 Obstaculo <|-- Asteroide

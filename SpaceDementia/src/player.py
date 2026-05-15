@@ -95,23 +95,6 @@ class Player:
         if self._shoot_cooldown > 0:
             self._shoot_cooldown -= 1
 
-    # ------------------------------------------------------------ power-ups
-
-    def add_powerup(self, powerup_type):
-        max_count = 3 if powerup_type in ("WEAPON_RIGHT", "WEAPON_LEFT") else 1
-        self.powerups.setdefault(powerup_type, 0)
-        if self.powerups[powerup_type] < max_count:
-            self.powerups[powerup_type] += 1
-
-    def remove_powerup(self, powerup_type):
-        if self.powerups.get(powerup_type, 0) > 0:
-            self.powerups[powerup_type] -= 1
-            if self.powerups[powerup_type] == 0:
-                del self.powerups[powerup_type]
-
-    def has_powerup(self, powerup_type):
-        return self.powerups.get(powerup_type, 0) > 0
-
     def tiene_escudo(self):
         """Verifica escudo de campo (temporal) O escudo de tienda (permanente)."""
         return ("ESCUDO" in self.powerups_temporales or

@@ -3,7 +3,7 @@ import random
 import pygame
 
 import asset_loader
-from config import HEIGHT, WIDTH
+import config
 
 
 class Background:
@@ -24,17 +24,17 @@ class Background:
     def _generar_espacio(self, vel):
         # Capa 1: estrellas lejanas (lentas, tenues)
         self.estrellas_fondo = [
-            [float(random.randint(0, WIDTH)), float(random.randint(0, HEIGHT))]
+            [float(random.randint(0, config.WIDTH)), float(random.randint(0, config.HEIGHT))]
             for _ in range(200)
         ]
         # Capa 2: estrellas medias
         self.estrellas_medias = [
-            [float(random.randint(0, WIDTH)), float(random.randint(0, HEIGHT))]
+            [float(random.randint(0, config.WIDTH)), float(random.randint(0, config.HEIGHT))]
             for _ in range(130)
         ]
         # Capa 3: estrellas rápidas y brillantes
         self.estrellas_rapidas = [
-            [float(random.randint(0, WIDTH)), float(random.randint(0, HEIGHT))]
+            [float(random.randint(0, config.WIDTH)), float(random.randint(0, config.HEIGHT))]
             for _ in range(60)
         ]
         # Planetas decorativos de fondo (5 planetas estáticos, semitransparentes)
@@ -46,8 +46,8 @@ class Background:
         tipos_elegidos = random.sample(_tipos_planetas, 5)
         self.planetas = [
             [
-                float(random.randint(0, WIDTH)),        # x
-                float(random.randint(80, HEIGHT - 80)), # y
+                float(random.randint(0, config.WIDTH)),        # x
+                float(random.randint(80, config.HEIGHT - 80)), # y
                 float(random.randint(100, 250)),        # tamaño en px (reducido)
                 tipo,                                   # nombre del planeta
                 random.uniform(0.05, 0.2),              # vel_parallax (muy lento)
@@ -78,23 +78,23 @@ class Background:
         for p in self.planetas:
             p[0] -= vel * p[4]
             if p[0] + p[2] * 0.5 < 0:
-                p[0] = float(WIDTH + p[2] * 0.5)
-                p[1] = float(random.randint(80, HEIGHT - 80))
+                p[0] = float(config.WIDTH + p[2] * 0.5)
+                p[1] = float(random.randint(80, config.HEIGHT - 80))
         for s in self.estrellas_fondo:
             s[0] -= vel * 0.35
             if s[0] < 0:
-                s[0] = float(WIDTH + random.randint(0, 60))
-                s[1] = float(random.randint(0, HEIGHT))
+                s[0] = float(config.WIDTH + random.randint(0, 60))
+                s[1] = float(random.randint(0, config.HEIGHT))
         for s in self.estrellas_medias:
             s[0] -= vel * 0.9
             if s[0] < 0:
-                s[0] = float(WIDTH + random.randint(0, 60))
-                s[1] = float(random.randint(0, HEIGHT))
+                s[0] = float(config.WIDTH + random.randint(0, 60))
+                s[1] = float(random.randint(0, config.HEIGHT))
         for s in self.estrellas_rapidas:
             s[0] -= vel * 2.2
             if s[0] < 0:
-                s[0] = float(WIDTH + random.randint(0, 60))
-                s[1] = float(random.randint(0, HEIGHT))
+                s[0] = float(config.WIDTH + random.randint(0, 60))
+                s[1] = float(random.randint(0, config.HEIGHT))
 
     # ------------------------------------------------------------------- draw
 
@@ -104,7 +104,7 @@ class Background:
         self._dibujar_espacio(screen)
 
     def _dibujar_espacio(self, screen):
-        # BG tileable. Escalado a (WIDTH+2)×(HEIGHT+2) → blit en (-offset-1, -1)
+        # BG tileable. Escalado a (config.WIDTH+2)×(config.HEIGHT+2) → blit en (-offset-1, -1)
         # para garantizar cobertura total sin gaps de redondeo.
         bg = asset_loader.get_bg()
         bg_w = bg.get_width()
@@ -112,7 +112,7 @@ class Background:
         x0 = -offset - 2
         screen.blit(bg, (x0, -2))
         screen.blit(bg, (x0 + bg_w, -2))
-        if x0 + bg_w * 2 < WIDTH:
+        if x0 + bg_w * 2 < config.WIDTH:
             screen.blit(bg, (x0 + bg_w * 2, -2))
 
         # Planetas: alpha horneado en asset_loader → blit directo respeta z-order

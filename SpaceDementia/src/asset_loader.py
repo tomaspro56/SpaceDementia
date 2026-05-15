@@ -16,6 +16,7 @@ Ninguna otra clase hace pygame.image.load() ni transform.scale().
 import os
 
 import pygame
+import config
 
 # ── Ruta a la carpeta assets/ (un nivel arriba de src/) ───────────────────────
 _ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "assets")
@@ -119,12 +120,6 @@ def get_enemy_frame(tipo: str, color: str, direction_y: int) -> pygame.Surface:
     else:
         frame = "m"
     return _get(f"enemy_{tipo}_{color}_{frame}")
-
-
-def get_mine_frame(frame_global: int) -> pygame.Surface:
-    """Anima la mina ciclando los 9 frames de mine_1."""
-    n = (frame_global // 4 % 9) + 1
-    return _get(f"mine_1_{n:02d}")
 
 
 def get_explosion_frame(tamaño: str, frame_idx: int) -> pygame.Surface | None:
@@ -386,9 +381,8 @@ def _cargar_fx() -> None:
 
 def _cargar_fondo() -> None:
     """BG.png escalado 4px extra para cubrir gaps de redondeo en el tiling."""
-    from config import WIDTH, HEIGHT
     img = _cargar("BG.png")
-    _sprites["BG"] = _escalar(img, WIDTH + 4, HEIGHT + 4).convert()
+    _sprites["BG"] = _escalar(img, config.WIDTH + 4, config.HEIGHT + 4).convert()
 
 
 # ── Asteroides large ─────────────────────────────────────────────────────────

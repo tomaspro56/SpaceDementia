@@ -10,9 +10,9 @@ SpaceDementia es un juego de naves espaciales con scroll horizontal donde el jug
 
 - 5 mundos temáticos con dificultad progresiva (25 niveles + 5 bosses)
 - Modo 1 jugador y modo cooperativo 2 jugadores (mismo teclado)
-- Sistema de oleadas con enemigos variados: normales, ágiles, ráfaga y apuntadores
+- Sistema de oleadas con enemigos variados: normales, ágiles, ráfaga, apuntadores y kamikazes (persecución directa)
 - Tienda entre niveles con mejoras: escudo, disparo doble, disparo plasma, vida extra, mega bomba
-- Anomalías espaciales: asteroides, agujeros negros, inversión gravitacional, lluvia de meteoros, pulso EMP, zona de interferencia
+- Anomalías espaciales: asteroides, agujeros negros, lluvia de meteoros, pulso EMP, zona de interferencia
 - Sprites animados del pack SpaceRage (itch.io)
 - Música y efectos de sonido
 - Sistema de monedas y puntuación por jugador
@@ -94,7 +94,7 @@ SpaceDementia/
 │   ├── sound.py     # Audio
 │   ├── config.py    # Resolución y constantes
 │   ├── worlds.py    # Configuración de mundos
-│   ├── powerup.py   # Power-ups
+│   ├── diagram.puml # Diagrama UML de clases (PlantUML)
 │   └── README.md
 └── requirements.txt
 ```

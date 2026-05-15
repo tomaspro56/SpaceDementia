@@ -5,36 +5,41 @@ Solo colisionan con el jugador — las balas y los enemigos los ignoran.
 
 import math
 import random
+from abc import ABC, abstractmethod
 
 import pygame
 
 import asset_loader
-from config import HEIGHT, WIDTH
+import config
 
 
-class Obstaculo:
-    """Clase base para todas las anomalías espaciales."""
+class Obstaculo(ABC):
+    """Clase base abstracta para todas las anomalías espaciales."""
 
     causa_impacto_fisico = False
 
     def __init__(self):
         self.vida = 0
 
-    def update(self):
-        raise NotImplementedError
+    @abstractmethod
+    def update(self) -> None:
+        """Avanza la lógica del obstáculo un frame. Obligatorio."""
+        ...
 
-    def draw(self, screen):
-        raise NotImplementedError
+    @abstractmethod
+    def draw(self, screen) -> None:
+        """Dibuja el obstáculo. Obligatorio."""
+        ...
 
-    def is_dead(self):
+    def is_dead(self) -> bool:
         return self.vida <= 0
 
-    def afectar_jugador(self, jugador):
-        """Aplica el efecto del obstáculo al jugador. Retorna True si causó daño HP."""
+    def afectar_jugador(self, jugador) -> bool:
+        """Aplica efecto al jugador. Retorna True si causó daño HP."""
         return False
 
-    def afectar_jugadores(self, jugadores):
-        """Verifica todos los jugadores. Retorna lista de los que recibieron daño HP."""
+    def afectar_jugadores(self, jugadores) -> list:
+        """Verifica todos los jugadores. Retorna lista de los dañados."""
         dañados = []
         for j in jugadores:
             if self.afectar_jugador(j):
@@ -58,8 +63,8 @@ class AgujeronNegro(Obstaculo):
 
     def __init__(self):
         super().__init__()
-        self.x      = float(random.randint(WIDTH // 3, int(WIDTH * 0.72)))
-        self.y      = float(random.randint(180, HEIGHT - 180))
+        self.x      = float(random.randint(config.WIDTH // 3, int(config.WIDTH * 0.72)))
+        self.y      = float(random.randint(180, config.HEIGHT - 180))
         self.vida   = self.DURACION
         self._frame = 0
 
@@ -163,8 +168,8 @@ def generar_campo_asteroides():
     rocas = []
     n = random.randint(8, 15)
     for i in range(n):
-        x     = WIDTH + 40 + i * random.randint(30, 90)
-        y     = random.randint(60, HEIGHT - 60)
+        x     = config.WIDTH + 40 + i * random.randint(30, 90)
+        y     = random.randint(60, config.HEIGHT - 60)
         radio = random.randint(15, 40)
         vel   = random.uniform(2.5, 6.5)
         rocas.append(Asteroide(x, y, radio, vel))
@@ -182,7 +187,7 @@ class ZonaInterferencia(Obstaculo):
 
     def __init__(self):
         super().__init__()
-        self.y      = float(random.randint(150, HEIGHT - self.ALTO - 150))
+        self.y      = float(random.randint(150, config.HEIGHT - self.ALTO - 150))
         self.vida   = self.DURACION
         self._vel_y = 0.7
         self._frame = 0
@@ -191,7 +196,7 @@ class ZonaInterferencia(Obstaculo):
         self._frame += 1
         self.vida   -= 1
         self.y      += self._vel_y
-        if self.y > HEIGHT - self.ALTO - 60 or self.y < 60:
+        if self.y > config.HEIGHT - self.ALTO - 60 or self.y < 60:
             self._vel_y *= -1
 
     def afectar_jugador(self, jugador):
@@ -206,7 +211,7 @@ class ZonaInterferencia(Obstaculo):
         alpha_borde = int(min(1.0, ratio * 4) * 130)
 
         for _ in range(30):
-            rx = random.randint(0, WIDTH - 1)
+            rx = random.randint(0, config.WIDTH - 1)
             ry = random.randint(iy, iy + self.ALTO - 1)
             rw = random.randint(6, 50)
             rh = random.randint(1, 5)
@@ -215,7 +220,7 @@ class ZonaInterferencia(Obstaculo):
             s.fill((cl, cl, min(255, cl + 40), 55))
             screen.blit(s, (rx, ry))
 
-        s_borde = pygame.Surface((WIDTH, 3), pygame.SRCALPHA)
+        s_borde = pygame.Surface((config.WIDTH, 3), pygame.SRCALPHA)
         s_borde.fill((120, 180, 255, alpha_borde))
         screen.blit(s_borde, (0, iy))
         screen.blit(s_borde, (0, iy + self.ALTO))
@@ -240,7 +245,7 @@ class _Meteoro:
         self.x += self.vx
         self.y += self.vy
         self._estela = [(sx, sy, sv - 1) for sx, sy, sv in self._estela if sv > 1]
-        if self.x < -self.radio * 2 or self.y > HEIGHT + self.radio * 2:
+        if self.x < -self.radio * 2 or self.y > config.HEIGHT + self.radio * 2:
             self._vivo = False
 
     def is_dead(self):
@@ -281,8 +286,8 @@ class LluviaMeteoros(Obstaculo):
         n = random.randint(20, 30)
         self.meteoros: list[_Meteoro] = []
         for i in range(n):
-            x        = float(WIDTH + random.randint(0, 400) + i * random.randint(10, 40))
-            y        = float(random.randint(-200, int(HEIGHT * 0.25)))
+            x        = float(config.WIDTH + random.randint(0, 400) + i * random.randint(10, 40))
+            y        = float(random.randint(-200, int(config.HEIGHT * 0.25)))
             vel      = random.uniform(8, 12)
             ang_deg  = random.uniform(30, 55)
             ang_rad  = math.radians(ang_deg)
@@ -333,8 +338,8 @@ class PulsoEMP(Obstaculo):
 
     def __init__(self):
         super().__init__()
-        self.x      = float(random.randint(200, WIDTH - 200))
-        self.y      = float(random.randint(150, HEIGHT - 150))
+        self.x      = float(random.randint(200, config.WIDTH - 200))
+        self.y      = float(random.randint(150, config.HEIGHT - 150))
         self.radio  = 0.0
         self.vida   = self.DURACION
         self._frame = 0

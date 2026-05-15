@@ -34,7 +34,7 @@ MUNDOS = [
         "vel_enemigo_base":        3.0,
         "vel_bala_enemigo":        10,
         "disparo_chance":          8,     # % por frame
-        "tipos_oleada":            ["normal"],
+        "tipos_oleada":            ["normal", "kamikaze"],
         "enemies_per_wave":        5,
     },
 
@@ -61,7 +61,7 @@ MUNDOS = [
         "vel_enemigo_base":        4.0,
         "vel_bala_enemigo":        12,
         "disparo_chance":          10,
-        "tipos_oleada":            ["normal", "agil"],
+        "tipos_oleada":            ["normal", "agil", "kamikaze"],
         "enemies_per_wave":        6,
     },
 
@@ -88,7 +88,7 @@ MUNDOS = [
         "vel_enemigo_base":        4.5,
         "vel_bala_enemigo":        13,
         "disparo_chance":          12,
-        "tipos_oleada":            ["normal", "agil", "rafaga"],
+        "tipos_oleada":            ["normal", "agil", "rafaga", "kamikaze"],
         "enemies_per_wave":        7,
     },
 
@@ -115,7 +115,7 @@ MUNDOS = [
         "vel_enemigo_base":        5.0,
         "vel_bala_enemigo":        14,
         "disparo_chance":          15,
-        "tipos_oleada":            ["normal", "agil", "rafaga", "apuntador"],
+        "tipos_oleada":            ["normal", "agil", "rafaga", "apuntador", "kamikaze"],
         "enemies_per_wave":        7,
     },
 
@@ -142,7 +142,7 @@ MUNDOS = [
         "vel_enemigo_base":        5.5,
         "vel_bala_enemigo":        15,
         "disparo_chance":          18,
-        "tipos_oleada":            ["normal", "agil", "rafaga", "apuntador"],
+        "tipos_oleada":            ["normal", "agil", "rafaga", "apuntador", "kamikaze"],
         "enemies_per_wave":        8,
     },
 ]

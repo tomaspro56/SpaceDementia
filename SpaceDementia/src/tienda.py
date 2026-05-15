@@ -8,7 +8,7 @@ Navegación: flechas ↑↓ · ENTER comprar · ESC continuar
 
 import pygame
 
-from config import HEIGHT, WIDTH
+import config
 
 
 class Tienda:
@@ -174,7 +174,7 @@ class Tienda:
         self._draw_ayuda(screen)
 
     def _draw_fondo(self, screen):
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        overlay = pygame.Surface((config.WIDTH, config.HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 15, 215))
         screen.blit(overlay, (0, 0))
 
@@ -188,7 +188,7 @@ class Tienda:
 
         font = pygame.font.SysFont("monospace", 68, bold=True)
         surf = font.render(titulo_texto, True, color_j)
-        x = WIDTH // 2 - surf.get_width() // 2
+        x = config.WIDTH // 2 - surf.get_width() // 2
         screen.blit(surf, (x, 30))
         pygame.draw.line(screen, color_j,
                          (x, 30 + surf.get_height() + 4),
@@ -198,7 +198,7 @@ class Tienda:
         font = pygame.font.SysFont("monospace", 30, bold=True)
         texto = f"Monedas: {self.player.monedas}"
         surf = font.render(texto, True, self._C_MONEDA)
-        x = WIDTH - surf.get_width() - 50
+        x = config.WIDTH - surf.get_width() - 50
         bg = pygame.Surface((surf.get_width() + 22, surf.get_height() + 10), pygame.SRCALPHA)
         bg.fill((0, 0, 0, 150))
         screen.blit(bg, (x - 11, 42))
@@ -211,7 +211,7 @@ class Tienda:
         font_e = pygame.font.SysFont("monospace", 23, bold=True)
 
         ancho    = 960
-        x_base   = WIDTH // 2 - ancho // 2
+        x_base   = config.WIDTH // 2 - ancho // 2
         y_inicio = 155
         alto     = 98
 
@@ -267,4 +267,4 @@ class Tienda:
             "flechas: navegar    ENTER: comprar    ESC: continuar",
             True, self._C_AYUDA
         )
-        screen.blit(surf, (WIDTH // 2 - surf.get_width() // 2, HEIGHT - 48))
+        screen.blit(surf, (config.WIDTH // 2 - surf.get_width() // 2, config.HEIGHT - 48))

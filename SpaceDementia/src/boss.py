@@ -5,7 +5,7 @@ import pygame
 
 import asset_loader
 from bullet import Bullet
-from config import HEIGHT, WIDTH
+import config
 
 
 class Boss:
@@ -13,11 +13,11 @@ class Boss:
 
     VIDA_MAX = 300
     SIZE = 90          # 3× el enemigo normal (30)
-    X_BATALLA = WIDTH - 300  # Posición horizontal de combate
 
     def __init__(self, x, y, tema=None):
         self.x = float(x)
-        self.y = float(HEIGHT // 2)
+        self.y = float(config.HEIGHT // 2)
+        self.X_BATALLA = config.WIDTH - 300
         self.size = self.SIZE
         self._vida = self.VIDA_MAX
         self.vida_max = self.VIDA_MAX
@@ -121,12 +121,12 @@ class Boss:
             self.y = float(margen)
             self.direction_y = 1
             self._vel_y_erratica = abs(self._vel_y_erratica)
-        if self.y > HEIGHT - margen:
-            self.y = float(HEIGHT - margen)
+        if self.y > config.HEIGHT - margen:
+            self.y = float(config.HEIGHT - margen)
             self.direction_y = -1
             self._vel_y_erratica = -abs(self._vel_y_erratica)
         # Limitar X para que el sprite no salga por los lados
-        self.x = max(150.0, min(float(WIDTH - 150), self.x))
+        self.x = max(150.0, min(float(config.WIDTH - 150), self.x))
 
         # Cambio de dirección periódico (fases 1 y 2)
         if self.fase < 3 and self._frame % 80 == 0:
@@ -207,7 +207,7 @@ class Boss:
     def _dibujar_barra_vida(self, screen):
         barra_w = 380
         barra_h = 20
-        bx = WIDTH // 2 - barra_w // 2
+        bx = config.WIDTH // 2 - barra_w // 2
         by = 45   # Debajo del texto "MUNDO X · NIVEL Y" del HUD
 
         # Fondo

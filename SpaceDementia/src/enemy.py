@@ -1,14 +1,15 @@
 import math
 import random
+from abc import ABC, abstractmethod
 
 import pygame
 
 import asset_loader
 from bullet import Bullet
-from config import HEIGHT
+import config
 
 
-class Enemy:
+class Enemy(ABC):
     """Clase base para todos los enemigos espaciales."""
 
     PUNTOS  = 10
@@ -75,9 +76,10 @@ class Enemy:
             pygame.draw.circle(surf, (255, 255, 255, 160), (s + 2, s + 2), s)
             screen.blit(surf, (int(self.x) - s - 2, int(self.y) - s - 2))
 
-    def _get_tipo_sprite(self):
+    @abstractmethod
+    def _get_tipo_sprite(self) -> str:
         """Subclases sobreescriben para indicar sprite 1 (drone) o 2 (caza)."""
-        return "1"
+        ...
 
     def _dibujar_sprite(self, screen):
         sprite = asset_loader.get_enemy_frame(self._get_tipo_sprite(),
@@ -110,7 +112,7 @@ class EnemigoAgil(Enemy):
     def move(self):
         super().move()
         self.y += self.direction_y * 2
-        if self.y < 50 or self.y > HEIGHT - 50:
+        if self.y < 50 or self.y > config.HEIGHT - 50:
             self.direction_y *= -1
 
     def _get_tipo_sprite(self):
@@ -159,7 +161,7 @@ class EnemigoApuntador(Enemy):
     def move(self):
         super().move()
         self.y += self.direction_y * 2
-        if self.y < 50 or self.y > HEIGHT - 50:
+        if self.y < 50 or self.y > config.HEIGHT - 50:
             self.direction_y *= -1
 
     def shoot_frame(self, jugadores):
@@ -194,4 +196,51 @@ class EnemigoApuntador(Enemy):
         pygame.draw.line(screen, c, (x, y + radio + gap),   (x, y + radio + largo), 1)
 
     def _get_tipo_sprite(self):
+        return "2"
+
+
+class EnemigoKamikaze(Enemy):
+    """Enemigo suicida: persigue al jugador más cercano sin disparar.
+
+    Pierde su disparo a cambio de velocidad y movimiento dirigido.
+    Demuestra polimorfismo: anula move() para perseguir, anula
+    shoot_frame() para no disparar nunca.
+    """
+
+    PUNTOS  = 35
+    MONEDAS = 18
+
+    def __init__(self, x, y, size, speed, tema=None):
+        super().__init__(x, y, size, speed, tema)
+        self.speed = min(speed * 1.4, 12)
+        self.vida  = 2
+        self._target_player = None
+        self.color_sprite   = "g"
+        print(f"[KAMIKAZE INIT] x={self.x} y={self.y} speed={self.speed}", flush=True)
+
+    def move(self):
+        """Persigue al jugador más cercano en vez de avanzar recto."""
+        self._frame += 1
+        if self._target_player is not None and self._target_player.life > 0:
+            dx = self._target_player.x - self.x
+            dy = self._target_player.y - self.y
+            dist = math.sqrt(dx * dx + dy * dy)
+            if dist > 1:
+                self.x += (dx / dist) * self.speed
+                self.y += (dy / dist) * self.speed
+        else:
+            self.x -= self.speed
+        if self._frame % 30 == 0:
+            print(f"[KAMIKAZE MOVE] frame={self._frame} x={self.x:.0f} y={self.y:.0f} target={'YES' if self._target_player else 'NO'}", flush=True)
+
+    def shoot_frame(self, jugadores):
+        """No dispara. Al primer frame con jugadores vivos, fija objetivo."""
+        if self._target_player is None and jugadores:
+            self._target_player = min(
+                jugadores,
+                key=lambda p: abs(p.x - self.x) + abs(p.y - self.y)
+            )
+        return []
+
+    def _get_tipo_sprite(self) -> str:
         return "2"

@@ -3,12 +3,18 @@ import pygame
 pygame.mixer.pre_init(frequency=22050, size=-16, channels=1, buffer=512)
 pygame.init()
 
-from config import HEIGHT, WIDTH
+import config
 from game import Game
 from menu import Menu
 import asset_loader
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+# Detectar resolución del escritorio para SCALED
+_info = pygame.display.Info()
+_w, _h = _info.current_w, _info.current_h
+# FULLSCREEN | SCALED → fullscreen real con escalado automático.
+# Permite Alt+Tab y screenshots sin minimizar.
+screen = pygame.display.set_mode((_w, _h), pygame.FULLSCREEN | pygame.SCALED)
+config.set_dimensions(*screen.get_size())
 asset_loader.inicializar()   # Carga todos los sprites UNA SOLA VEZ
 pygame.display.set_caption("SpaceDementia")
 

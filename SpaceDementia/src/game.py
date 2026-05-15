@@ -7,9 +7,10 @@ import asset_loader
 from background import Background
 from boss import Boss
 from bullet import Bullet
-from config import HEIGHT, WHITE, WIDTH
-from enemy import (Enemy, EnemigoNormal, EnemigoAgil,
-                   EnemigoRafaga, EnemigoApuntador)
+import config
+from config import WHITE
+from enemy import (EnemigoNormal, EnemigoAgil,
+                   EnemigoRafaga, EnemigoApuntador, EnemigoKamikaze)
 from explosion import Explosion
 from tienda import Tienda
 from obstaculo import (AgujeronNegro, ZonaInterferencia,
@@ -65,9 +66,9 @@ class Game:
         self.estado_timer = 60
 
         # ── Jugadores ────────────────────────────────────────────────────────
-        self.player1 = Player(150, HEIGHT // 3,     20, 10, 3, tema=self.config, jugador_id=1)
+        self.player1 = Player(150, config.HEIGHT // 3,     20, 10, 3, tema=self.config, jugador_id=1)
         self.player2 = (
-            Player(150, HEIGHT * 2 // 3, 20, 10, 3, tema=self.config, jugador_id=2)
+            Player(150, config.HEIGHT * 2 // 3, 20, 10, 3, tema=self.config, jugador_id=2)
             if modo_2j else None
         )
         # Alias de compatibilidad: self.player apunta a player1
@@ -139,7 +140,7 @@ class Game:
         self.background = Background(1, tema=self.config)
 
         # ── Screen shake ──────────────────────────────────────────────────────
-        self._surface            = pygame.Surface((WIDTH, HEIGHT))
+        self._surface            = pygame.Surface((config.WIDTH, config.HEIGHT))
         self._shake_timer        = 0
         self._shake_intensidad   = 0
         self._shake_frames_total = 1
@@ -211,13 +212,13 @@ class Game:
                         mover1 = False
                         if keys[pygame.K_LEFT] and self.player1.x - self.player1.speed > self.player1.size:
                             self.player1.move("LEFT"); mover1 = True
-                        elif keys[pygame.K_RIGHT] and self.player1.x + self.player1.speed < WIDTH * 0.55:
+                        elif keys[pygame.K_RIGHT] and self.player1.x + self.player1.speed < config.WIDTH * 0.55:
                             self.player1.move("RIGHT"); mover1 = True
                         k_arr = pygame.K_DOWN if self.gravedad_invertida else pygame.K_UP
                         k_aba = pygame.K_UP   if self.gravedad_invertida else pygame.K_DOWN
                         if keys[k_arr] and self.player1.y - self.player1.speed > self.player1.size:
                             self.player1.move("UP"); mover1 = True
-                        elif keys[k_aba] and self.player1.y + self.player1.speed < HEIGHT - self.player1.size:
+                        elif keys[k_aba] and self.player1.y + self.player1.speed < config.HEIGHT - self.player1.size:
                             self.player1.move("DOWN"); mover1 = True
 
                         if keys[k_arr]:
@@ -228,8 +229,8 @@ class Game:
                             self.player1.tilt *= 0.85
 
                         # Limitar posición dentro de pantalla
-                        self.player1.x = max(50.0, min(float(WIDTH - 50), self.player1.x))
-                        self.player1.y = max(50.0, min(float(HEIGHT - 50), self.player1.y))
+                        self.player1.x = max(50.0, min(float(config.WIDTH - 50), self.player1.x))
+                        self.player1.y = max(50.0, min(float(config.HEIGHT - 50), self.player1.y))
 
                         if mover1:
                             self._player1_trail.append((int(self.player1.x), int(self.player1.y)))
@@ -245,13 +246,13 @@ class Game:
                         mover2 = False
                         if keys[pygame.K_a] and self.player2.x - self.player2.speed > self.player2.size:
                             self.player2.move("LEFT"); mover2 = True
-                        elif keys[pygame.K_d] and self.player2.x + self.player2.speed < WIDTH * 0.55:
+                        elif keys[pygame.K_d] and self.player2.x + self.player2.speed < config.WIDTH * 0.55:
                             self.player2.move("RIGHT"); mover2 = True
                         k_w = pygame.K_s if self.gravedad_invertida else pygame.K_w
                         k_s = pygame.K_w if self.gravedad_invertida else pygame.K_s
                         if keys[k_w] and self.player2.y - self.player2.speed > self.player2.size:
                             self.player2.move("UP"); mover2 = True
-                        elif keys[k_s] and self.player2.y + self.player2.speed < HEIGHT - self.player2.size:
+                        elif keys[k_s] and self.player2.y + self.player2.speed < config.HEIGHT - self.player2.size:
                             self.player2.move("DOWN"); mover2 = True
 
                         if keys[k_w]:
@@ -262,8 +263,8 @@ class Game:
                             self.player2.tilt *= 0.85
 
                         # Limitar posición dentro de pantalla
-                        self.player2.x = max(50.0, min(float(WIDTH - 50), self.player2.x))
-                        self.player2.y = max(50.0, min(float(HEIGHT - 50), self.player2.y))
+                        self.player2.x = max(50.0, min(float(config.WIDTH - 50), self.player2.x))
+                        self.player2.y = max(50.0, min(float(config.HEIGHT - 50), self.player2.y))
 
                         if mover2:
                             self._player2_trail.append((int(self.player2.x), int(self.player2.y)))
@@ -416,7 +417,7 @@ class Game:
             if self._alerta_timer <= 0:
                 self.sound.detener_musica()
                 self.sound.iniciar_musica("boss")
-                self.boss   = Boss(float(WIDTH + 100), float(HEIGHT // 2), tema=self.config)
+                self.boss   = Boss(float(config.WIDTH + 100), float(config.HEIGHT // 2), tema=self.config)
                 self.estado = "boss"
 
         elif self.estado == "boss":
@@ -441,7 +442,7 @@ class Game:
         # Balas del jugador
         for b in self.bullets[:]:
             b.move()
-            if b.x > WIDTH or b.x < 0 or b.y < 0 or b.y > HEIGHT:
+            if b.x > config.WIDTH or b.x < 0 or b.y < 0 or b.y > config.HEIGHT:
                 self.bullets.remove(b)
 
         # Oleadas
@@ -454,7 +455,7 @@ class Game:
         # Balas enemigas → jugadores
         for b in self.enemy_bullets[:]:
             b.move()
-            if b.x < 0 or b.x > WIDTH or b.y < 0 or b.y > HEIGHT:
+            if b.x < 0 or b.x > config.WIDTH or b.y < 0 or b.y > config.HEIGHT:
                 self.enemy_bullets.remove(b)
                 continue
             for p in self._jugadores_vivos():
@@ -603,7 +604,10 @@ class Game:
 
         cfg   = self.config
         vel   = cfg["vel_enemigo_base"]
-        tipos = cfg["tipos_oleada"]
+        tipos = list(cfg["tipos_oleada"])
+        # En el nivel 1 del mundo 1, omitir kamikaze para no romper el "tutorial"
+        if self.mundo_id == 1 and self.nivel == 1 and "kamikaze" in tipos:
+            tipos.remove("kamikaze")
         n     = cfg["enemies_per_wave"]
         forma = random.choice(_FORMACIONES)
 
@@ -615,18 +619,18 @@ class Game:
         cola = []
 
         if forma == "linea":
-            centro_y = random.randint(240, HEIGHT - 240)
+            centro_y = random.randint(240, config.HEIGHT - 240)
             ys = [centro_y + (i - n // 2) * 70 for i in range(n)]
 
         elif forma == "v_invertida":
-            cx = HEIGHT // 2
+            cx = config.HEIGHT // 2
             offsets = [0, -90, 90, -180, 180, -270, 270][:n]
             ys = [cx + o for o in offsets]
 
         elif forma == "pinza":
             mitad  = n // 2
-            ys_top = [random.randint(80, HEIGHT // 2 - 60) for _ in range(mitad)]
-            ys_bot = [random.randint(HEIGHT // 2 + 60, HEIGHT - 80) for _ in range(n - mitad)]
+            ys_top = [random.randint(80, config.HEIGHT // 2 - 60) for _ in range(mitad)]
+            ys_bot = [random.randint(config.HEIGHT // 2 + 60, config.HEIGHT - 80) for _ in range(n - mitad)]
             ys = []
             for i in range(max(len(ys_top), len(ys_bot))):
                 if i < len(ys_top):
@@ -643,21 +647,26 @@ class Game:
                 ys.append(y)
                 usados.append(y)
 
-        for y in ys:
-            tipo  = random.choice(tipos)
+        for i, y in enumerate(ys):
+            # DEBUG TEMPORAL: forzar 50% kamikaze si está en tipos
+            if "kamikaze" in tipos and i % 2 == 0:
+                tipo = "kamikaze"
+            else:
+                tipo = random.choice(tipos)
             speed = vel + (1.5 if tipo == "agil" else
                            0.8 if tipo == "rafaga" else
-                           1.2 if tipo == "apuntador" else 0)
-            cola.append((max(80, min(HEIGHT - 80, int(y))), tipo, speed))
+                           1.2 if tipo == "apuntador" else
+                           0.5 if tipo == "kamikaze" else 0)
+            cola.append((max(80, min(config.HEIGHT - 80, int(y))), tipo, speed))
 
         return cola
 
     def _elegir_y_separado(self, usados, min_sep=80):
         for _ in range(25):
-            y = random.randint(80, HEIGHT - 80)
+            y = random.randint(80, config.HEIGHT - 80)
             if all(abs(y - u) >= min_sep for u in usados):
                 return y
-        return random.randint(80, HEIGHT - 80)
+        return random.randint(80, config.HEIGHT - 80)
 
     def _update_oleadas(self):
         """Ciclo: spawn → esperar → descanso → posible evento → spawn."""
@@ -681,10 +690,13 @@ class Game:
                     "agil":      EnemigoAgil,
                     "rafaga":    EnemigoRafaga,
                     "apuntador": EnemigoApuntador,
+                    "kamikaze":  EnemigoKamikaze,
                 }
-                _COLOR_POR_TIPO = {"normal": "r", "agil": "b", "rafaga": "g", "apuntador": "b"}
+                _COLOR_POR_TIPO = {"normal": "r", "agil": "b", "rafaga": "g",
+                                   "apuntador": "b", "kamikaze": "g"}
                 ClaseEnemigo   = _CLASE_POR_TIPO.get(tipo, EnemigoNormal)
-                e              = ClaseEnemigo(WIDTH + 30, y, 30, speed, tema=self.config)
+                e              = ClaseEnemigo(config.WIDTH + 30, y, 30, speed, tema=self.config)
+                print(f"[SPAWN] mundo={self.mundo_id} nivel={self.nivel} tipo={tipo} clase={ClaseEnemigo.__name__}", flush=True)
                 e.color_sprite = _COLOR_POR_TIPO.get(tipo, "r")
 
                 if self.mundo_id >= 4 and isinstance(e, (EnemigoNormal, EnemigoRafaga)) and random.random() < 0.3:
@@ -844,7 +856,7 @@ class Game:
         if not vivos:
             return
         for enemy in self.enemies:
-            if enemy.x > WIDTH - 100 or enemy._frame < 30:
+            if enemy.x > config.WIDTH - 100 or enemy._frame < 30:
                 continue
             self.enemy_bullets.extend(enemy.shoot_frame(vivos))
 
@@ -865,7 +877,7 @@ class Game:
         # Balas del jugador
         for b in self.bullets[:]:
             b.move()
-            if b.x > WIDTH or b.x < 0 or b.y < 0 or b.y > HEIGHT:
+            if b.x > config.WIDTH or b.x < 0 or b.y < 0 or b.y > config.HEIGHT:
                 self.bullets.remove(b)
 
         if self.boss:
@@ -877,8 +889,8 @@ class Game:
 
             while self.boss.refuerzos_pendientes > 0:
                 self.boss.refuerzos_pendientes -= 1
-                y = random.randint(100, HEIGHT - 100)
-                e = EnemigoNormal(WIDTH + 30, y, 30, 4, tema=self.config)
+                y = random.randint(100, config.HEIGHT - 100)
+                e = EnemigoNormal(config.WIDTH + 30, y, 30, 4, tema=self.config)
                 e.color_sprite = asset_loader.COLOR_ENEMIGO_POR_MUNDO.get(self.mundo_id, "r")
                 self.enemies.append(e)
 
@@ -900,7 +912,7 @@ class Game:
         # Balas enemigas → jugadores
         for b in self.enemy_bullets[:]:
             b.move()
-            if b.x < 0 or b.x > WIDTH or b.y < 0 or b.y > HEIGHT:
+            if b.x < 0 or b.x > config.WIDTH or b.y < 0 or b.y > config.HEIGHT:
                 self.enemy_bullets.remove(b)
                 continue
             for p in self._jugadores_vivos():
@@ -1210,7 +1222,7 @@ class Game:
         if self._damage_flash <= 0:
             return
         alpha   = int((self._damage_flash / 5) * 80)
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        overlay = pygame.Surface((config.WIDTH, config.HEIGHT), pygame.SRCALPHA)
         overlay.fill((220, 20, 20, alpha))
         surf.blit(overlay, (0, 0))
 
@@ -1219,7 +1231,7 @@ class Game:
             return
         self._bomba_flash -= 1
         alpha   = int((self._bomba_flash / 10) * 220)
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        overlay = pygame.Surface((config.WIDTH, config.HEIGHT), pygame.SRCALPHA)
         overlay.fill((255, 255, 255, alpha))
         surf.blit(overlay, (0, 0))
 
@@ -1228,23 +1240,23 @@ class Game:
             return
         pulso = abs(math.sin(self.gravedad_timer * 0.08))
         alpha = int(55 + pulso * 110)
-        borde = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        pygame.draw.rect(borde, (160, 0, 220, alpha), (0, 0, WIDTH, HEIGHT), 20)
+        borde = pygame.Surface((config.WIDTH, config.HEIGHT), pygame.SRCALPHA)
+        pygame.draw.rect(borde, (160, 0, 220, alpha), (0, 0, config.WIDTH, config.HEIGHT), 20)
         surf.blit(borde, (0, 0))
         if self.gravedad_timer > 180:
             self._draw_overlay_centrado("! GRAVEDAD INVERTIDA !",
-                                        HEIGHT // 2 + 80, 34, (200, 80, 255))
+                                        config.HEIGHT // 2 + 80, 34, (200, 80, 255))
 
     def _draw_vignette(self, surf):
         g   = 110
-        s_h = pygame.Surface((WIDTH, g), pygame.SRCALPHA)
+        s_h = pygame.Surface((config.WIDTH, g), pygame.SRCALPHA)
         s_h.fill((0, 0, 0, 85))
-        s_v = pygame.Surface((g, HEIGHT), pygame.SRCALPHA)
+        s_v = pygame.Surface((g, config.HEIGHT), pygame.SRCALPHA)
         s_v.fill((0, 0, 0, 85))
         surf.blit(s_h, (0, 0))
-        surf.blit(s_h, (0, HEIGHT - g))
+        surf.blit(s_h, (0, config.HEIGHT - g))
         surf.blit(s_v, (0, 0))
-        surf.blit(s_v, (WIDTH - g, 0))
+        surf.blit(s_v, (config.WIDTH - g, 0))
 
     # ------------------------------------------------------------------ HUD
 
@@ -1263,7 +1275,7 @@ class Game:
         self._draw_centro_hud(color)
 
         # Corazones dibujados con primitivas, alineados a la derecha
-        xv = WIDTH - 12
+        xv = config.WIDTH - 12
         for _ in range(max(0, self.player1.life)):
             self._dibujar_corazon(self.screen, xv - 16, 20, tam=20, color=(220, 60, 80))
             xv -= 34
@@ -1274,7 +1286,7 @@ class Game:
         if self._texto_oleada_timer > 0 and self.estado == "jugando":
             alpha = min(255, self._texto_oleada_timer * 7)
             self._draw_overlay_centrado(f"OLEADA  {self.oleada_num}",
-                                        HEIGHT // 2 - 35, 38,
+                                        config.HEIGHT // 2 - 35, 38,
                                         (255, 220, 80), alpha)
 
         self._draw_aviso()
@@ -1306,7 +1318,7 @@ class Game:
         if self.player2.life > 0:
             self._draw_text_derecha(f"Pts: {self.player2.score}   P2", y=12, size=26,
                                     color=c_j2)
-            xh2 = WIDTH - 12
+            xh2 = config.WIDTH - 12
             for _ in range(self.player2.life):
                 self._dibujar_corazon(self.screen, xh2 - 10, 48, tam=18, color=(220, 60, 80))
                 xh2 -= 28
@@ -1323,12 +1335,12 @@ class Game:
         for p in self._lista_jugadores():
             if p.emp_activo:
                 label = f"J{p.jugador_id} EMP ({p.emp_timer // 30 + 1}s)"
-                self._draw_overlay_centrado(label, HEIGHT // 2 + 80, 28, (50, 150, 255))
+                self._draw_overlay_centrado(label, config.HEIGHT // 2 + 80, 28, (50, 150, 255))
 
         if self._texto_oleada_timer > 0 and self.estado == "jugando":
             alpha = min(255, self._texto_oleada_timer * 7)
             self._draw_overlay_centrado(f"OLEADA  {self.oleada_num}",
-                                        HEIGHT // 2 - 35, 38,
+                                        config.HEIGHT // 2 - 35, 38,
                                         (255, 220, 80), alpha)
 
         self._draw_aviso()
@@ -1350,8 +1362,8 @@ class Game:
         surf  = font.render(texto, True, (255, 220, 0))
         surf.set_alpha(alpha)
 
-        x  = WIDTH  // 2 - surf.get_width()  // 2
-        y  = HEIGHT // 2 - surf.get_height() // 2 + 30
+        x  = config.WIDTH  // 2 - surf.get_width()  // 2
+        y  = config.HEIGHT // 2 - surf.get_height() // 2 + 30
         bg = pygame.Surface((surf.get_width() + 24, surf.get_height() + 12), pygame.SRCALPHA)
         bg.fill((0, 0, 0, 145))
         bg.set_alpha(alpha)
@@ -1371,8 +1383,8 @@ class Game:
 
         font  = pygame.font.SysFont("monospace", 32, bold=True)
         surf  = font.render(f"COMBO  x{self._combo}", True, color)
-        x     = WIDTH  // 2 - surf.get_width() // 2
-        y     = HEIGHT - 90
+        x     = config.WIDTH  // 2 - surf.get_width() // 2
+        y     = config.HEIGHT - 90
         self.screen.blit(surf, (x, y))
 
         bar_max_w = 80
@@ -1384,7 +1396,7 @@ class Game:
             bar_color = (255, 200, 0)
         else:
             bar_color = (255, 60, 50)
-        bx = WIDTH // 2 - bar_max_w // 2
+        bx = config.WIDTH // 2 - bar_max_w // 2
         by = y + surf.get_height() + 4
         pygame.draw.rect(self.screen, (40, 40, 40), (bx, by, bar_max_w, 5))
         if bar_w > 0:
@@ -1397,7 +1409,7 @@ class Game:
         self._mute_aviso_timer -= 1
         alpha = min(255, self._mute_aviso_timer * 5)
         self._draw_overlay_centrado(self._mute_aviso_texto,
-                                    HEIGHT // 2 - 30, 44, (255, 220, 80), alpha)
+                                    config.HEIGHT // 2 - 30, 44, (255, 220, 80), alpha)
 
     def _draw_pausa_menu(self):
         """Dibuja el menú de pausa navigable o la pantalla de controles."""
@@ -1406,13 +1418,13 @@ class Game:
             return
 
         # Fondo semitransparente
-        velo = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        velo = pygame.Surface((config.WIDTH, config.HEIGHT), pygame.SRCALPHA)
         velo.fill((0, 0, 10, 160))
         self.screen.blit(velo, (0, 0))
 
         panel_w, panel_h = 750, 420
-        px = WIDTH  // 2 - panel_w // 2
-        py = HEIGHT // 2 - panel_h // 2
+        px = config.WIDTH  // 2 - panel_w // 2
+        py = config.HEIGHT // 2 - panel_h // 2
         panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
         panel.fill((8, 12, 35, 230))
         pygame.draw.rect(panel, (80, 160, 255), (0, 0, panel_w, panel_h), 2)
@@ -1458,13 +1470,13 @@ class Game:
 
     def _draw_controles_overlay(self):
         """Panel con la tabla de controles (también accesible desde pausa)."""
-        velo = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        velo = pygame.Surface((config.WIDTH, config.HEIGHT), pygame.SRCALPHA)
         velo.fill((0, 0, 10, 170))
         self.screen.blit(velo, (0, 0))
 
         panel_w, panel_h = 680, 480
-        px = WIDTH  // 2 - panel_w // 2
-        py = HEIGHT // 2 - panel_h // 2
+        px = config.WIDTH  // 2 - panel_w // 2
+        py = config.HEIGHT // 2 - panel_h // 2
         panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
         panel.fill((8, 12, 35, 230))
         pygame.draw.rect(panel, (80, 160, 255), (0, 0, panel_w, panel_h), 2)
@@ -1512,7 +1524,7 @@ class Game:
         texto_mn = f"MUNDO {self.mundo_id}  ·  NIVEL {self.nivel}"
         font_mn  = pygame.font.SysFont("monospace", 26, bold=True)
         surf_mn  = font_mn.render(texto_mn, True, color)
-        cx_mn    = WIDTH // 2 - surf_mn.get_width() // 2
+        cx_mn    = config.WIDTH // 2 - surf_mn.get_width() // 2
         r_bg     = surf_mn.get_rect(topleft=(cx_mn, 12))
         r_bg.inflate_ip(12, 6)
         s_bg     = pygame.Surface(r_bg.size, pygame.SRCALPHA)
@@ -1555,7 +1567,7 @@ class Game:
         tam   = 22
         gap   = 8
         total = tam + gap + surf.get_width()
-        x = 12 if lado == "izq" else WIDTH - total - 12
+        x = 12 if lado == "izq" else config.WIDTH - total - 12
         self._dibujar_calavera(self.screen, x + tam // 2, 42 + tam // 2, tam=tam)
         self.screen.blit(surf, (x + tam + gap, 42))
 
@@ -1573,7 +1585,7 @@ class Game:
             if lado == "izq":
                 x = 12
             else:
-                x = WIDTH - s.get_width() - 12
+                x = config.WIDTH - s.get_width() - 12
             r = s.get_rect(topleft=(x, y))
             r.inflate_ip(4, 2)
             bg = pygame.Surface(r.size, pygame.SRCALPHA)
@@ -1600,7 +1612,7 @@ class Game:
         bg = pygame.Surface((ancho_total + 16, MONEDA_RADIO * 2 + 10), pygame.SRCALPHA)
         bg.fill((0, 0, 0, 110))
         if xr:
-            bx = WIDTH - ancho_total - 18
+            bx = config.WIDTH - ancho_total - 18
         else:
             bx = 12
         self.screen.blit(bg, (bx - 2, y_base - 2))
@@ -1622,7 +1634,7 @@ class Game:
         texto = f"BOMBA x{player.mega_bombas}  [{tecla}]"
         surf  = font.render(texto, True, (255, 110, 50))
         if xr:
-            x = WIDTH - surf.get_width() - 12
+            x = config.WIDTH - surf.get_width() - 12
         else:
             x = 12
         bg = pygame.Surface((surf.get_width() + 16, surf.get_height() + 8), pygame.SRCALPHA)
@@ -1633,7 +1645,7 @@ class Game:
     def _draw_oleada_bar_centrada(self, color, y):
         barra_w = 360
         barra_h = 16
-        bx      = WIDTH // 2 - barra_w // 2
+        bx      = config.WIDTH // 2 - barra_w // 2
         oleadas_hechas = min(self.oleada_num, self.oleadas_objetivo)
         ratio   = min(1.0, oleadas_hechas / max(1, self.oleadas_objetivo))
         texto   = f"OLEADA  {oleadas_hechas} / {self.oleadas_objetivo}"
@@ -1644,7 +1656,7 @@ class Game:
         bg_surf = pygame.Surface((barra_w + 10, total_h + 4), pygame.SRCALPHA)
         bg_surf.fill((0, 0, 0, 100))
         self.screen.blit(bg_surf, (bx - 5, y - 2))
-        self.screen.blit(s, (WIDTH // 2 - s.get_width() // 2, y))
+        self.screen.blit(s, (config.WIDTH // 2 - s.get_width() // 2, y))
         by2 = y + 20
         pygame.draw.rect(self.screen, (30, 30, 30), (bx, by2, barra_w, barra_h))
         fill_w = max(0, int(barra_w * ratio))
@@ -1664,21 +1676,21 @@ class Game:
             nombre = self.config.get("nombre", "")
             self._draw_overlay_centrado(
                 f"MUNDO {self.mundo_id}  —  NIVEL {self.nivel}",
-                HEIGHT // 2 - 60, 52, color)
-            self._draw_overlay_centrado(nombre, HEIGHT // 2 + 15, 30, color)
+                config.HEIGHT // 2 - 60, 52, color)
+            self._draw_overlay_centrado(nombre, config.HEIGHT // 2 + 15, 30, color)
             obj = self.config["oleadas_por_nivel"][self.nivel - 1]
             self._draw_overlay_centrado(f"Objetivo: {obj} oleadas",
-                                        HEIGHT // 2 + 60, 22, color)
+                                        config.HEIGHT // 2 + 60, 22, color)
 
         elif self.estado == "alerta":
             if (self._alerta_timer // 6) % 2 == 0:
                 self._draw_overlay_centrado("!  ALERTA  !",
-                                            HEIGHT // 2 - 55, 80, (255, 40, 40))
+                                            config.HEIGHT // 2 - 55, 80, (255, 40, 40))
             nombre_boss = self.config.get("nombre_boss", "BOSS")
             self._draw_overlay_centrado(nombre_boss,
-                                        HEIGHT // 2 + 40, 36, (220, 110, 110))
+                                        config.HEIGHT // 2 + 40, 36, (220, 110, 110))
             self._draw_overlay_centrado("SE APROXIMA",
-                                        HEIGHT // 2 + 90, 28, (180, 80, 80))
+                                        config.HEIGHT // 2 + 90, 28, (180, 80, 80))
 
         elif self.estado == "completado":
             self._draw_completado_panel()
@@ -1688,24 +1700,24 @@ class Game:
 
         elif self.estado == "victoria":
             self._draw_overlay_centrado("VICTORIA",
-                                        HEIGHT // 2 - 100, 88, (255, 220, 0))
+                                        config.HEIGHT // 2 - 100, 88, (255, 220, 0))
             self._draw_overlay_centrado("Los 5 mundos han sido conquistados",
-                                        HEIGHT // 2 + 10, 32, (80, 255, 120))
+                                        config.HEIGHT // 2 + 10, 32, (80, 255, 120))
             if self.modo_2j and self.player2:
                 self._draw_overlay_centrado(
                     f"J1: {self.player1.score}    J2: {self.player2.score}",
-                    HEIGHT // 2 + 65, 36, color)
+                    config.HEIGHT // 2 + 65, 36, color)
             else:
                 self._draw_overlay_centrado(f"Puntuacion final: {self.player1.score}",
-                                            HEIGHT // 2 + 65, 36, color)
+                                            config.HEIGHT // 2 + 65, 36, color)
             self._draw_overlay_centrado("ENTER: Menu",
-                                        HEIGHT // 2 + 120, 26, color)
+                                        config.HEIGHT // 2 + 120, 26, color)
 
         # Aviso EMP en modo 1j
         if not self.modo_2j and self.player1.emp_activo:
             seg = self.player1.emp_timer // 30 + 1
             self._draw_overlay_centrado(f"EMP — disparo bloqueado ({seg}s)",
-                                        HEIGHT // 2 + 80, 28, (50, 150, 255))
+                                        config.HEIGHT // 2 + 80, 28, (50, 150, 255))
 
     def _draw_textos_flotantes(self):
         font = pygame.font.SysFont("monospace", 20, bold=True)
@@ -1744,8 +1756,8 @@ class Game:
         surf_g = font_t.render(texto, True, (180, 255, 210))
         surf_g.set_alpha(min(alpha // 3, 55))
 
-        cx = WIDTH  // 2 - surf_t.get_width()  // 2
-        cy = HEIGHT // 2 - surf_t.get_height() // 2 - 30
+        cx = config.WIDTH  // 2 - surf_t.get_width()  // 2
+        cy = config.HEIGHT // 2 - surf_t.get_height() // 2 - 30
 
         for ox, oy in [(-4, 0), (4, 0), (0, -4), (0, 4)]:
             self.screen.blit(surf_g, (cx + ox, cy + oy))
@@ -1755,18 +1767,18 @@ class Game:
             texto_b = f"+{self._bonus_nivel} MONEDAS BONUS"
             surf_b  = font_b.render(texto_b, True, (255, 210, 0))
             surf_b.set_alpha(alpha)
-            bx = WIDTH // 2 - surf_b.get_width() // 2
+            bx = config.WIDTH // 2 - surf_b.get_width() // 2
             self.screen.blit(surf_b, (bx, cy + surf_t.get_height() + 18))
 
     def _draw_gameover_panel(self):
         """Panel de Game Over con estadísticas y opciones REINTENTAR / MENU."""
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        overlay = pygame.Surface((config.WIDTH, config.HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         self.screen.blit(overlay, (0, 0))
 
         panel_w, panel_h = 700, 510
-        px = WIDTH  // 2 - panel_w // 2
-        py = HEIGHT // 2 - panel_h // 2
+        px = config.WIDTH  // 2 - panel_w // 2
+        py = config.HEIGHT // 2 - panel_h // 2
         panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
         panel.fill((20, 5, 5, 235))
         pygame.draw.rect(panel, (200, 40, 40), (0, 0, panel_w, panel_h), 2)
@@ -1847,7 +1859,7 @@ class Game:
         font = pygame.font.SysFont("monospace", size, bold=True)
         surf = font.render(texto, True, color)
         surf.set_alpha(alpha)
-        self.screen.blit(surf, (WIDTH // 2 - surf.get_width() // 2, y))
+        self.screen.blit(surf, (config.WIDTH // 2 - surf.get_width() // 2, y))
 
     def _draw_text(self, text, pos, size, color=WHITE, bg=False):
         font  = pygame.font.SysFont("monospace", size)
@@ -1864,7 +1876,7 @@ class Game:
         """Renderiza texto alineado a la derecha con fondo semitransparente."""
         font  = pygame.font.SysFont("monospace", size)
         label = font.render(text, True, color)
-        x     = WIDTH - label.get_width() - 12
+        x     = config.WIDTH - label.get_width() - 12
         r     = label.get_rect(topleft=(x, y))
         r.inflate_ip(8, 4)
         s     = pygame.Surface(r.size, pygame.SRCALPHA)

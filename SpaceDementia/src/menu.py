@@ -3,7 +3,7 @@ import random
 
 import pygame
 
-from config import HEIGHT, WIDTH
+import config
 from sound import SoundManager
 
 
@@ -37,8 +37,8 @@ class Menu:
         self._sound = SoundManager()
         self._sound.iniciar_musica("menu")
         self._estrellas = [
-            [float(random.randint(0, WIDTH)),
-             float(random.randint(0, HEIGHT)),
+            [float(random.randint(0, config.WIDTH)),
+             float(random.randint(0, config.HEIGHT)),
              random.uniform(0.5, 2.5)]
             for _ in range(80)
         ]
@@ -92,8 +92,8 @@ class Menu:
         for s in self._estrellas:
             s[0] -= s[2]
             if s[0] < 0:
-                s[0] = float(WIDTH + 10)
-                s[1] = float(random.randint(0, HEIGHT))
+                s[0] = float(config.WIDTH + 10)
+                s[1] = float(random.randint(0, config.HEIGHT))
             brilla = (self._frame // 6 + int(s[1])) % 4 != 0
             if brilla:
                 pygame.draw.circle(self.screen, (200, 220, 255),
@@ -104,8 +104,8 @@ class Menu:
         font_sub    = pygame.font.SysFont("monospace", 28)
         titulo = "SpaceDementia"
         surf_t = font_titulo.render(titulo, True, _COLOR_TITULO)
-        cx = WIDTH // 2 - surf_t.get_width() // 2
-        cy = HEIGHT // 2 - 270
+        cx = config.WIDTH // 2 - surf_t.get_width() // 2
+        cy = config.HEIGHT // 2 - 270
 
         # Efecto glitch cada ~55 frames
         ciclo = self._frame % 55
@@ -125,13 +125,13 @@ class Menu:
 
         sub = "— 5 MUNDOS · 25 NIVELES · 5 BOSSES —"
         surf_s = font_sub.render(sub, True, _COLOR_HUD)
-        self.screen.blit(surf_s, (WIDTH // 2 - surf_s.get_width() // 2, y_linea + 16))
+        self.screen.blit(surf_s, (config.WIDTH // 2 - surf_s.get_width() // 2, y_linea + 16))
 
     def _dibujar_opciones(self):
         font = pygame.font.SysFont("monospace", 52, bold=True)
         font_flecha = pygame.font.SysFont("monospace", 52, bold=True)
 
-        cy_base = HEIGHT // 2 - 60
+        cy_base = config.HEIGHT // 2 - 60
         for i, opcion in enumerate(self._opciones):
             seleccionada = (i == self._seleccion)
             color = _COLOR_SEL if seleccionada else _COLOR_NORMAL
@@ -144,7 +144,7 @@ class Menu:
 
             surf = font_op.render(opcion, True, color)
             y = cy_base + i * 85
-            x = WIDTH // 2 - surf.get_width() // 2
+            x = config.WIDTH // 2 - surf.get_width() // 2
             self.screen.blit(surf, (x, y))
 
             if seleccionada:
@@ -174,14 +174,14 @@ class Menu:
     def _dibujar_overlay_controles(self, screen):
         """Panel semitransparente con la tabla de controles."""
         # Fondo oscuro global
-        velo = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        velo = pygame.Surface((config.WIDTH, config.HEIGHT), pygame.SRCALPHA)
         velo.fill((0, 0, 10, 170))
         screen.blit(velo, (0, 0))
 
         # Panel central
         panel_w, panel_h = 680, 480
-        px = WIDTH  // 2 - panel_w // 2
-        py = HEIGHT // 2 - panel_h // 2
+        px = config.WIDTH  // 2 - panel_w // 2
+        py = config.HEIGHT // 2 - panel_h // 2
         panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
         panel.fill((8, 12, 35, 230))
         pygame.draw.rect(panel, (80, 160, 255), (0, 0, panel_w, panel_h), 2)
