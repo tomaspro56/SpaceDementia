@@ -1162,7 +1162,6 @@ class Game:
             self.boss._dibujar_barra_vida(self.screen)
         self._draw_textos_flotantes()
         self._draw_overlay()
-        self._draw_vignette(surf)
 
         self.screen = pantalla_real
         if self._shake_timer > 0:
@@ -1246,17 +1245,6 @@ class Game:
         if self.gravedad_timer > 180:
             self._draw_overlay_centrado("! GRAVEDAD INVERTIDA !",
                                         config.HEIGHT // 2 + 80, 34, (200, 80, 255))
-
-    def _draw_vignette(self, surf):
-        g   = 110
-        s_h = pygame.Surface((config.WIDTH, g), pygame.SRCALPHA)
-        s_h.fill((0, 0, 0, 85))
-        s_v = pygame.Surface((g, config.HEIGHT), pygame.SRCALPHA)
-        s_v.fill((0, 0, 0, 85))
-        surf.blit(s_h, (0, 0))
-        surf.blit(s_h, (0, config.HEIGHT - g))
-        surf.blit(s_v, (0, 0))
-        surf.blit(s_v, (config.WIDTH - g, 0))
 
     # ------------------------------------------------------------------ HUD
 

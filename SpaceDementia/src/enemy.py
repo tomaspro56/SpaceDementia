@@ -216,7 +216,6 @@ class EnemigoKamikaze(Enemy):
         self.vida  = 2
         self._target_player = None
         self.color_sprite   = "g"
-        print(f"[KAMIKAZE INIT] x={self.x} y={self.y} speed={self.speed}", flush=True)
 
     def move(self):
         """Persigue al jugador más cercano en vez de avanzar recto."""
@@ -230,8 +229,6 @@ class EnemigoKamikaze(Enemy):
                 self.y += (dy / dist) * self.speed
         else:
             self.x -= self.speed
-        if self._frame % 30 == 0:
-            print(f"[KAMIKAZE MOVE] frame={self._frame} x={self.x:.0f} y={self.y:.0f} target={'YES' if self._target_player else 'NO'}", flush=True)
 
     def shoot_frame(self, jugadores):
         """No dispara. Al primer frame con jugadores vivos, fija objetivo."""
