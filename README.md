@@ -1,7 +1,7 @@
 # SpaceDementia
 
 Shoot'em up espacial horizontal desarrollado con Pygame para la materia
-de Lógica de Programación II — ITM, Medellín.
+de Lógica de Programación — ITM, Medellín.
 
 ![Gameplay de SpaceDementia](SpaceDementia/game.png)
 
