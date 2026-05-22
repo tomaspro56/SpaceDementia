@@ -93,5 +93,5 @@ Proyecto-Final-Logica/
 - **Sprites:** SpaceRage Asset Pack por Ravenmore (itch.io)
 - **Música:** Sci-Fi Music Pack Vol. 2 (itch.io)
 - **Efectos de sonido:** Retro Sci-Fi Sound Fx + Interface Bleeps (itch.io)
-- **Desarrollo:** Tomás, Yesica Caro, Juan Manuel Castaño,
-  Luis Daniel Zuluaga — ITM Medellín, 2025
+- **Desarrollo:** Tomás Pérez, Yesica Caro, Juan Manuel Castaño,
+  Luis Daniel Zuluaga — ITM Medellín, 2026
