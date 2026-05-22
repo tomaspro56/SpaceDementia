@@ -32,6 +32,9 @@ end note
 class Game {
     - screen: Surface
     - modo_2j: bool
+    - nombre1: str
+    - nombre2: str
+    - partida_terminada: bool
     - mundo_id: int
     - nivel: int
     - config: dict
@@ -56,6 +59,7 @@ class Game {
     - _tienda: Tienda
     - _tienda_turno: int
     + run(): str
+    + puntaje_total(): int
     + disparar_jugador(player): void
     - _manejar_tecla(key): str
     - _update(): void
@@ -315,8 +319,10 @@ class Menu {
     - _opciones: List
     - _bg: Background
     - _sound: SoundManager
+    - _scoreboard: Scoreboard
     + run(): str
     - _mostrar_controles(): void
+    - _mostrar_puntajes(): void
     - _dibujar(): void
     - _dibujar_titulo(): void
     - _dibujar_opciones(): void
@@ -490,6 +496,35 @@ note right of Worlds
   Sector Nebulosa - Vacio Final.
 end note
 
+class Scoreboard {
+    - _archivo: str
+    - _tablas: dict
+    {static} _MAX_ENTRADAS: int = 10
+    + cargar(): void
+    + guardar(): void
+    + agregar(modo, nombre, puntaje): bool
+    + top(modo, n): List
+    - _recortar(modo): void
+    {static} clave_combinada(n1, n2): str
+}
+
+note right of Scoreboard
+  Tablas top 10 con persistencia JSON.
+  Dos modos separados: 1j y 2j.
+  Claves case-insensitive; conserva
+  el nombre del mejor puntaje.
+end note
+
+class NameEntry <<module>> {
+    {static} pedir_nombre(screen, ...): str
+    {static} mostrar_scoreboard(screen, sb, modo, ...): void
+}
+
+note right of NameEntry
+  Captura de nombre estilo arcade
+  y visualizacion del scoreboard.
+end note
+
 ' ══════════════ Herencia ══════════════
 
 Enemy <|-- EnemigoNormal
@@ -541,5 +576,9 @@ Background ..> AssetLoader : get_bg()
 Asteroide ..> AssetLoader : get_asteroid_sprite()
 
 Game --> Surface : renderiza
+
+Menu ..> Scoreboard : consulta
+Menu ..> NameEntry : usa
+Game ..> Scoreboard : guarda puntaje
 
 @enduml

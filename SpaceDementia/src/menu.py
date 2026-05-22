@@ -27,11 +27,12 @@ class Menu:
     Retorna "1j", "2j" o False (salir).
     """
 
-    def __init__(self, screen):
+    def __init__(self, screen, scoreboard=None):
         self.screen = screen
+        self._scoreboard = scoreboard
         self._frame = 0
         self._seleccion = 0
-        self._opciones = ["JUGAR", "2 JUGADORES", "CONTROLES", "SALIR"]
+        self._opciones = ["JUGAR", "2 JUGADORES", "PUNTAJES", "CONTROLES", "SALIR"]
         from background import Background
         self._bg    = Background(1, tema=_FONDO_MENU)
         self._sound = SoundManager()
@@ -68,6 +69,8 @@ class Menu:
                             self._sound.detener_musica()
                             return "2j"
                         elif self._seleccion == 2:
+                            self._mostrar_puntajes()
+                        elif self._seleccion == 3:
                             self._mostrar_controles()
                         else:
                             return False
@@ -150,6 +153,67 @@ class Menu:
             if seleccionada:
                 surf_fl = font_flecha.render(">", True, _COLOR_SEL)
                 self.screen.blit(surf_fl, (x - surf_fl.get_width() - 18, y))
+
+    # ---------------------------------------------------------------- puntajes
+
+    def _mostrar_puntajes(self):
+        """Selector: deja elegir ver tabla de 1 o 2 jugadores."""
+        if self._scoreboard is None:
+            return
+        from name_entry import mostrar_scoreboard
+
+        opciones = ["1 JUGADOR", "2 JUGADORES", "VOLVER"]
+        sel = 0
+        clock = pygame.time.Clock()
+        font_t = pygame.font.SysFont("monospace", 56, bold=True)
+        font_o = pygame.font.SysFont("monospace", 40, bold=True)
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        sel = (sel - 1) % len(opciones)
+                        self._sound.play("menu_click")
+                    elif event.key == pygame.K_DOWN:
+                        sel = (sel + 1) % len(opciones)
+                        self._sound.play("menu_click")
+                    elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                        if sel == 0:
+                            mostrar_scoreboard(self.screen, self._scoreboard, modo="1j")
+                        elif sel == 1:
+                            mostrar_scoreboard(self.screen, self._scoreboard, modo="2j")
+                        else:
+                            return
+                    elif event.key in (pygame.K_ESCAPE, pygame.K_q):
+                        return
+
+            self._frame += 1
+            self._bg.update()
+            self._dibujar()
+
+            # Overlay del selector
+            velo = pygame.Surface((config.WIDTH, config.HEIGHT), pygame.SRCALPHA)
+            velo.fill((0, 0, 10, 180))
+            self.screen.blit(velo, (0, 0))
+
+            surf_t = font_t.render("PUNTAJES", True, (0, 255, 200))
+            self.screen.blit(surf_t, (config.WIDTH // 2 - surf_t.get_width() // 2,
+                                      config.HEIGHT // 2 - 180))
+
+            for i, op in enumerate(opciones):
+                color = (0, 255, 200) if i == sel else (120, 160, 210)
+                surf = font_o.render(op, True, color)
+                x = config.WIDTH // 2 - surf.get_width() // 2
+                y = config.HEIGHT // 2 - 60 + i * 70
+                self.screen.blit(surf, (x, y))
+                if i == sel:
+                    fl = font_o.render(">", True, (0, 255, 200))
+                    self.screen.blit(fl, (x - fl.get_width() - 20, y))
+
+            pygame.display.flip()
+            clock.tick(30)
 
     # ---------------------------------------------------------------- controles
 

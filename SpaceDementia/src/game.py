@@ -52,9 +52,12 @@ class Game:
     Retorna "menu" o "quit" desde run().
     """
 
-    def __init__(self, screen, modo_2j: bool = False):
+    def __init__(self, screen, modo_2j: bool = False,
+                 nombre1: str = "P1", nombre2: str = "P2"):
         self.screen  = screen
         self.modo_2j = modo_2j
+        self.nombre1 = (nombre1 or "P1").strip()[:12] or "P1"
+        self.nombre2 = (nombre2 or "P2").strip()[:12] or "P2"
 
         # ── Progresión ───────────────────────────────────────────────────────
         self.mundo_id = 1
@@ -104,6 +107,9 @@ class Game:
 
         # ── Selección en pantalla Game Over ──────────────────────────────────
         self._gameover_sel = 0  # 0 = REINTENTAR, 1 = MENU
+
+        # Para el scoreboard: main.py los lee tras run()
+        self.partida_terminada = False   # True si hubo game_over o victoria
 
         # ── Transición de nivel completado ────────────────────────────────────
         self._bonus_nivel     = 0   # Monedas extra mostradas en la transición
@@ -516,6 +522,7 @@ class Game:
             self._gameover_sonido_ok = False
             self.estado        = "game_over"
             self._gameover_sel = 0
+            self.partida_terminada = True
 
     # ========================================================== obstáculos
 
@@ -782,6 +789,7 @@ class Game:
                 self._iniciar_nivel()
             else:
                 self.estado = "victoria"
+                self.partida_terminada = True
 
     def _daño_jugador(self, player: Player):
         """Aplica daño al jugador; consume escudo si existe."""
@@ -948,6 +956,7 @@ class Game:
             self._gameover_sonido_ok = False
             self.estado        = "game_over"
             self._gameover_sel = 0
+            self.partida_terminada = True
 
     def _boss_muerto(self, shooter: Player):
         """Maneja la muerte del boss: explosiones, recompensa y transición."""
@@ -1257,7 +1266,7 @@ class Game:
 
     def _draw_hud_1j(self, color):
         """HUD original: score izquierda, vidas derecha, centro mundo/nivel."""
-        self._draw_text(f"Puntos: {self.player1.score}", (12, 12), 28, color)
+        self._draw_text(f"{self.nombre1}  {self.player1.score}", (12, 12), 28, color)
         self._draw_powerups_player(self.player1, color, y_inicio=52, lado="izq")
 
         self._draw_centro_hud(color)
@@ -1265,7 +1274,7 @@ class Game:
         # Corazones dibujados con primitivas, alineados a la derecha
         xv = config.WIDTH - 12
         for _ in range(max(0, self.player1.life)):
-            self._dibujar_corazon(self.screen, xv - 16, 20, tam=20, color=(220, 60, 80))
+            self._dibujar_corazon(self.screen, xv - 16, 32, tam=20, color=(220, 60, 80))
             xv -= 34
 
         self._draw_monedas_player(self.player1, xr=True, y_base=48)
@@ -1291,7 +1300,7 @@ class Game:
 
         # ── Jugador 1 (izquierda) ─────────────────────────────────────────
         if self.player1.life > 0:
-            self._draw_text(f"P1   Pts: {self.player1.score}", (12, 12), 26, c_j1)
+            self._draw_text(f"{self.nombre1}  {self.player1.score}", (12, 12), 26, c_j1)
             xh1 = 12
             for _ in range(self.player1.life):
                 self._dibujar_corazon(self.screen, xh1 + 10, 48, tam=18, color=(220, 60, 80))
@@ -1304,7 +1313,7 @@ class Game:
 
         # ── Jugador 2 (derecha) ───────────────────────────────────────────
         if self.player2.life > 0:
-            self._draw_text_derecha(f"Pts: {self.player2.score}   P2", y=12, size=26,
+            self._draw_text_derecha(f"{self.player2.score}  {self.nombre2}", y=12, size=26,
                                     color=c_j2)
             xh2 = config.WIDTH - 12
             for _ in range(self.player2.life):
@@ -1534,8 +1543,51 @@ class Game:
             (cx, cy + tam // 2 + 2),
         ])
 
+    # Caches de calavera compartidos entre instancias (lazy init)
+    _calavera_cache = {}
+    _calavera_font_cache = {}
+
+    @staticmethod
+    def _get_emoji_font(size):
+        """Devuelve una pygame.font.Font que renderiza emojis, o None."""
+        cache = Game._calavera_font_cache
+        if size in cache:
+            return cache[size]
+        candidatas = [
+            "Segoe UI Emoji",        # Windows
+            "Noto Color Emoji",      # Linux
+            "Apple Color Emoji",     # macOS
+            "Segoe UI Symbol",       # Windows fallback monocromo
+        ]
+        for nombre in candidatas:
+            try:
+                font = pygame.font.SysFont(nombre, size)
+                test = font.render("💀", True, (255, 255, 255))
+                if test.get_width() > size // 3:
+                    cache[size] = font
+                    return font
+            except Exception:
+                continue
+        cache[size] = None
+        return None
+
     def _dibujar_calavera(self, screen, cx, cy, tam=16):
-        """Calavera simple dibujada con primitivas."""
+        """Calavera 💀 renderizada con fuente del sistema, centrada en (cx, cy)."""
+        cache = Game._calavera_cache
+        if tam not in cache:
+            font = self._get_emoji_font(tam)
+            if font is not None:
+                cache[tam] = font.render("💀", True, (255, 255, 255))
+            else:
+                cache[tam] = None
+
+        sprite = cache[tam]
+        if sprite is not None:
+            w, h = sprite.get_size()
+            screen.blit(sprite, (cx - w // 2, cy - h // 2))
+            return
+
+        # Fallback: primitivas (solo si no hay fuente de emoji disponible)
         color = (200, 50, 50)
         pygame.draw.circle(screen, color, (cx, cy - 2), tam // 2)
         ojo_r = max(2, tam // 8)
@@ -1597,13 +1649,10 @@ class Game:
         MONEDA_COLOR = (255, 210, 0)
         MONEDA_RADIO = 10
         ancho_total  = MONEDA_RADIO * 2 + 8 + 80
-        bg = pygame.Surface((ancho_total + 16, MONEDA_RADIO * 2 + 10), pygame.SRCALPHA)
-        bg.fill((0, 0, 0, 110))
         if xr:
             bx = config.WIDTH - ancho_total - 18
         else:
             bx = 12
-        self.screen.blit(bg, (bx - 2, y_base - 2))
         cx = bx + MONEDA_RADIO
         cy = y_base + MONEDA_RADIO + 2
         pygame.draw.circle(self.screen, MONEDA_COLOR, (cx, cy), MONEDA_RADIO)
@@ -1640,10 +1689,6 @@ class Game:
 
         font = pygame.font.SysFont("monospace", 18)
         s    = font.render(texto, True, color)
-        total_h = 14 + barra_h
-        bg_surf = pygame.Surface((barra_w + 10, total_h + 4), pygame.SRCALPHA)
-        bg_surf.fill((0, 0, 0, 100))
-        self.screen.blit(bg_surf, (bx - 5, y - 2))
         self.screen.blit(s, (config.WIDTH // 2 - s.get_width() // 2, y))
         by2 = y + 20
         pygame.draw.rect(self.screen, (30, 30, 30), (bx, by2, barra_w, barra_h))
@@ -1861,13 +1906,15 @@ class Game:
         self.screen.blit(label, pos)
 
     def _draw_text_derecha(self, text, y, size, color=WHITE):
-        """Renderiza texto alineado a la derecha con fondo semitransparente."""
+        """Renderiza texto alineado a la derecha (sin fondo)."""
         font  = pygame.font.SysFont("monospace", size)
         label = font.render(text, True, color)
         x     = config.WIDTH - label.get_width() - 12
-        r     = label.get_rect(topleft=(x, y))
-        r.inflate_ip(8, 4)
-        s     = pygame.Surface(r.size, pygame.SRCALPHA)
-        s.fill((0, 0, 0, 110))
-        self.screen.blit(s, r.topleft)
         self.screen.blit(label, (x, y))
+
+    def puntaje_total(self) -> int:
+        """Suma de los puntajes de los jugadores activos."""
+        total = self.player1.score
+        if self.modo_2j and self.player2 is not None:
+            total += self.player2.score
+        return total

@@ -205,3 +205,18 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# SpaceDementia — datos locales y entorno
+scores.json
+env_spacedementia/
+SpaceDementia/scores.json
+
+# Archivos locales de desarrollo
+SpaceDementia/logs.txt
+SpaceDementia/pu.sh
+SpaceDementia/CLAUDE.md
+debug.log
+
+# Claude Code (configuración local de la herramienta)
+.claude/
+SpaceDementia/.claude/

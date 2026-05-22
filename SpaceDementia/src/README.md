@@ -4,36 +4,50 @@
 
 | Archivo | Descripción |
 |---------|-------------|
-| `main.py` | Punto de entrada. Inicializa Pygame en modo FULLSCREEN+SCALED, setea dimensiones en config, carga assets y ejecuta el loop menú → juego |
-| `game.py` | Controlador principal: estados (transición/jugando/completado/tienda/alerta/boss/game_over/victoria), oleadas, colisiones, HUD, pausa, screen shake |
+| `main.py` | Punto de entrada. Inicializa Pygame en FULLSCREEN+SCALED, setea dimensiones en config, carga assets, pide nombre(s) y ejecuta el loop menú → juego → scoreboard |
+| `game.py` | Controlador principal: estados (transición/jugando/completado/tienda/alerta/boss/game_over/victoria), oleadas, colisiones, HUD, pausa |
 | `player.py` | Clase Player: movimiento, escudo (temporal y permanente), disparo doble/plasma, mega-bomba, EMP, monedas y puntaje |
 | `enemy.py` | Clase abstracta Enemy (ABC) y 5 subclases: EnemigoNormal, EnemigoAgil, EnemigoRafaga, EnemigoApuntador, EnemigoKamikaze |
 | `boss.py` | Clase Boss: 3 fases según % de vida con patrones distintos (recto → abanico → ráfaga radial + embestida) |
 | `bullet.py` | Clase Bullet: balas de jugador, enemigo y boss con sprites animados (plasma, vulcan, proton) |
-| `explosion.py` | Clase Explosion: animación de sprites de explosión en 3 tamaños (grande/mediana/pequeña) |
+| `explosion.py` | Clase Explosion: animación de sprites en 3 tamaños (grande/mediana/pequeña) |
 | `obstaculo.py` | Clase abstracta Obstaculo (ABC) y subclases: AgujeronNegro, Asteroide, ZonaInterferencia, LluviaMeteoros, PulsoEMP |
 | `tienda.py` | Tienda entre niveles: escudo, disparo doble, plasma, vida extra, mega bomba, revivir compañero (solo si está muerto en 2J) |
-| `menu.py` | Menú principal con opciones JUGAR / 2 JUGADORES / CONTROLES / SALIR, pantalla de controles superpuesta |
-| `background.py` | Fondo parallax: BG tileable + 3 capas de estrellas + planetas decorativos en movimiento lento |
+| `menu.py` | Menú principal: JUGAR / 2 JUGADORES / PUNTAJES / CONTROLES / SALIR, con pantallas de controles y tabla de puntajes |
+| `scoreboard.py` | Clase Scoreboard: tablas top 10 con persistencia JSON, separadas por modo (1j/2j), claves case-insensitive |
+| `name_entry.py` | Pantalla de captura de nombre estilo arcade y visualización del scoreboard |
+| `background.py` | Fondo parallax: BG tileable + 3 capas de estrellas + planetas decorativos |
 | `asset_loader.py` | Carga centralizada de todos los sprites del pack SpaceRage. Único módulo que llama a `pygame.image.load()` |
-| `sound.py` | SoundManager: efectos de sonido (con disparo generado por síntesis) y música de fondo con mute |
+| `sound.py` | SoundManager: efectos de sonido (disparo generado por síntesis) y música de fondo con mute |
 | `config.py` | Constantes globales. WIDTH/HEIGHT se inicializan vía `set_dimensions()` desde main.py tras crear la ventana |
 | `worlds.py` | Configuración de los 5 mundos: paleta, tipos de enemigos por oleada, oleadas por nivel, vidas del boss |
-| `diagram.puml` | Diagrama de clases en PlantUML (genera `diagram.png` con `plantuml diagram.puml`) |
+
+El diagrama UML del proyecto está en `../diagram.puml` (raíz de SpaceDementia).
 
 ## Arquitectura
 
-El flujo es: `main.py` → `Menu` → `Game` → (loop de juego) → vuelve a `Menu`.
+El flujo es: `main.py` pide nombre(s) → `Menu` → `Game` → (loop de juego)
+→ al terminar, guarda el puntaje en el `Scoreboard` y muestra la tabla.
 
 `Game` es una máquina de estados con las transiciones:
-**transición → jugando → completado → tienda → alerta → boss → game_over/victoria**.
+**transición → jugando → completado → tienda → alerta → boss →
+game_over/victoria**.
 
 Cada módulo es independiente:
 - `asset_loader.py` es el único que hace `pygame.image.load()`.
 - `sound.py` es el único que toca `pygame.mixer`.
-- `config.WIDTH` y `config.HEIGHT` se leen vía `import config` (no `from config import …`)
-  para que las dimensiones reales del display estén disponibles después de
-  `set_dimensions()`.
+- `config.WIDTH` y `config.HEIGHT` se leen vía `import config` (no
+  `from config import …`) para que las dimensiones reales del display
+  estén disponibles después de `set_dimensions()`.
+
+## Programación orientada a objetos
+
+El proyecto usa clases base abstractas (ABC) del módulo `abc`:
+- `Enemy` es abstracta con el método abstracto `_get_tipo_sprite()`.
+  Sus 5 subclases lo implementan y sobreescriben `move()` / `shoot_frame()`
+  para comportamientos distintos (polimorfismo).
+- `Obstaculo` es abstracta con los métodos abstractos `update()` y
+  `draw()`, implementados por sus 5 anomalías espaciales.
 
 ## Display
 
@@ -43,8 +57,8 @@ El juego corre en modo `FULLSCREEN | SCALED` de pygame:
 
 ## Diagrama UML
 
-El archivo `diagram.puml` describe las clases del proyecto y sus relaciones
-(herencia, composición, asociaciones). Para regenerar `diagram.png`:
+El archivo `../diagram.puml` (en la raíz de SpaceDementia) describe las
+clases y sus relaciones. Para regenerar la imagen:
 
 ```bash
 plantuml diagram.puml
