@@ -13,13 +13,15 @@ Todos los assets se cargan, escalan y rotan aquí.
 Ninguna otra clase hace pygame.image.load() ni transform.scale().
 """
 
+import colorsys
 import os
 
 import pygame
 import config
+from rutas import ruta_recurso
 
-# ── Ruta a la carpeta assets/ (un nivel arriba de src/) ───────────────────────
-_ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "assets")
+# ── Ruta a la carpeta assets/ ─────────────────────────────────────────────────
+_ASSETS_DIR = ruta_recurso("assets")
 
 # ── Tamaños finales (en píxeles) ──────────────────────────────────────────────
 _TAM_JUGADOR       = 90     # jugador y enemigos: cuadrado final
@@ -41,8 +43,37 @@ _PLANETAS = [
     "Sun", "Terrestrial", "Uranus", "Venus",
 ]
 
-# Color de enemigo por mundo (se usa en get_enemy_frame via game.py)
+# Color de enemigo por mundo (legado; se mantiene para compatibilidad)
 COLOR_ENEMIGO_POR_MUNDO = {1: "r", 2: "r", 3: "g", 4: "b", 5: "b"}
+
+# Colores nombrados para enemigos. hue (0..1) para _tintar_hue, o
+# ("rgb", (r,g,b)) para _tintar_color (negro y casos especiales).
+PALETA_ENEMIGOS = {
+    "violeta": 0.78,
+    "cyan":    0.50,
+    "dorado":  0.13,
+    "azul":    0.62,
+    "rosa":    0.92,
+    "rojo":    0.00,
+    "verde":   0.33,
+    "negro":   ("rgb", (70, 70, 85)),
+}
+
+# Color por (tipo de enemigo, mundo). Cada tipo rota de color según mundo.
+# Tipos: "normal", "agil", "rafaga", "apuntador", "kamikaze".
+COLOR_TIPO_POR_MUNDO = {
+    "normal":    {1: "cyan",   2: "azul",   3: "verde",  4: "rojo",   5: "violeta"},
+    "agil":      {1: "azul",   2: "cyan",   3: "dorado", 4: "rosa",   5: "cyan"},
+    "rafaga":    {1: "dorado", 2: "verde",  3: "cyan",   4: "dorado", 5: "rosa"},
+    "apuntador": {1: "rosa",   2: "dorado", 3: "rosa",   4: "cyan",   5: "dorado"},
+    "kamikaze":  {1: "negro",  2: "verde",  3: "violeta",4: "negro",  5: "rojo"},
+}
+
+
+def color_enemigo(tipo_enemigo: str, mundo_id: int) -> str:
+    """Retorna el nombre de color para un tipo de enemigo en un mundo dado."""
+    por_mundo = COLOR_TIPO_POR_MUNDO.get(tipo_enemigo, {})
+    return por_mundo.get(mundo_id, "cyan")
 
 # ── Diccionario interno de sprites ────────────────────────────────────────────
 _sprites: dict[str, pygame.Surface] = {}
@@ -119,6 +150,8 @@ def get_enemy_frame(tipo: str, color: str, direction_y: int) -> pygame.Surface:
         frame = "r1"
     else:
         frame = "m"
+    if color in PALETA_ENEMIGOS:
+        return _get(f"enemy_{tipo}_col_{color}_{frame}")
     return _get(f"enemy_{tipo}_{color}_{frame}")
 
 
@@ -164,6 +197,12 @@ def get_proton_frame(frame_global: int) -> pygame.Surface:
     return _get(f"proton_{n:02d}")
 
 
+def get_proton_boss_frame(frame_global: int) -> pygame.Surface:
+    """Cicla proton tintado (naranja) para las balas del boss."""
+    n = (frame_global // 3 % 3) + 1
+    return _get(f"proton_boss_{n:02d}")
+
+
 def get_exhaust_frame(frame_global: int) -> pygame.Surface:
     """Cicla los 5 frames del propulsor cada 3 frames."""
     n = (frame_global // 3 % 5) + 1
@@ -180,9 +219,19 @@ def get_planet_sprite(nombre: str) -> pygame.Surface:
     return _get(f"planet_{nombre}")
 
 
-def get_boss_sprite() -> pygame.Surface:
-    """Retorna el sprite del boss (enemy_2 rojo, 192×192, apunta izquierda)."""
-    return _get("boss_sprite")
+def get_boss_sprite(tipo: str = "2", color: str = "r", size: int = 192) -> pygame.Surface:
+    """Retorna el sprite del boss para el tipo/color/tamaño dados.
+
+    Reutiliza los sprites de enemigo (enemy_{tipo}_{color}_m) escalados al
+    tamaño del boss. Cachea cada combinación para no recargar.
+    """
+    clave = f"boss_{tipo}_{color}_{size}"
+    if clave not in _sprites:
+        img = _cargar(f"Enemies/enemy_{tipo}_{color}_m.png")
+        img = _escalar(img, size)
+        img = _rotar(img, -90)  # apunta a la izquierda (hacia el jugador)
+        _sprites[clave] = img
+    return _sprites[clave]
 
 
 # Cantidad de variantes de asteroide cargadas (se establece en _cargar_asteroides)
@@ -247,6 +296,63 @@ def _rotar(surf: pygame.Surface, angulo: int) -> pygame.Surface:
     return pygame.transform.rotate(surf, angulo)
 
 
+def _tintar_hue(surf, hue):
+    """Tinta SELECTIVAMENTE el cuerpo verde de la nave al hue dado.
+    Conserva detalles blancos (baja saturación) y ventanas naranjas
+    (hue fuera del rango verde). Desplaza el matiz conservando los
+    sub-tonos (luces y sombras) del sprite original.
+
+    Validado con enemy_1 y enemy_2: rango verde [0.13, 0.42], sat>=0.18.
+    """
+    HUE_MIN, HUE_MAX, SAT_MIN = 0.13, 0.42, 0.18
+    centro = (HUE_MIN + HUE_MAX) / 2
+    out = surf.copy()
+    out.lock()
+    w, h = out.get_size()
+    for x in range(w):
+        for y in range(h):
+            r, g, b, a = out.get_at((x, y))
+            if a == 0 or (r < 8 and g < 8 and b < 8):
+                continue
+            hh, ll, ss = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            # Solo tintar el cuerpo verde (resto se conserva)
+            if ss >= SAT_MIN and HUE_MIN <= hh <= HUE_MAX:
+                delta = hh - centro
+                nh = (hue + delta) % 1.0
+                nr, ng, nb = colorsys.hls_to_rgb(nh, ll, ss)
+                out.set_at((x, y), (int(nr * 255), int(ng * 255), int(nb * 255), a))
+    out.unlock()
+    return out
+
+
+def _tintar_color(surf, color):
+    """Oscurece SELECTIVAMENTE el cuerpo verde a un color sólido (para el
+    negro/gris). Conserva detalles blancos (baja saturación) y ventanas
+    naranjas (hue fuera del rango verde). Mantiene la luminancia relativa
+    del sprite para no aplanarlo.
+
+    Validado: rango verde [0.13, 0.42], sat>=0.18.
+    """
+    HUE_MIN, HUE_MAX, SAT_MIN = 0.13, 0.42, 0.18
+    cr, cg, cb = color
+    out = surf.copy()
+    out.lock()
+    w, h = out.get_size()
+    for x in range(w):
+        for y in range(h):
+            r, g, b, a = out.get_at((x, y))
+            if a == 0 or (r < 8 and g < 8 and b < 8):
+                continue
+            hh, ll, ss = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            # Solo el cuerpo verde se oscurece; resto se conserva
+            if ss >= SAT_MIN and HUE_MIN <= hh <= HUE_MAX:
+                factor = 0.4 + ll * 0.8   # conserva luces/sombras relativas
+                out.set_at((x, y), (int(cr * factor), int(cg * factor),
+                                    int(cb * factor), a))
+    out.unlock()
+    return out
+
+
 # ── Jugador ───────────────────────────────────────────────────────────────────
 
 def _cargar_jugador() -> None:
@@ -276,8 +382,20 @@ def _cargar_enemigos() -> None:
                 nombre = f"enemy_{tipo}_{color}_{frame}"
                 img = _cargar(f"Enemies/{nombre}.png")
                 img = _escalar(img, _TAM_ENEMIGO)
-                img = _rotar(img, 90)   # 90° CCW → la punta apunta a la izquierda
+                img = _rotar(img, -90)  # apunta a la izquierda (hacia el jugador)
                 _sprites[nombre] = img
+
+    # Generar variantes de color por nombre para cada tipo+frame, tintando
+    # el sprite base (usamos el color "g"/verde como base neutra para tintar).
+    for tipo in ("1", "2"):
+        for nombre_color, valor in PALETA_ENEMIGOS.items():
+            for frame in ("l2", "l1", "m", "r1", "r2"):
+                base = _sprites[f"enemy_{tipo}_g_{frame}"]
+                if isinstance(valor, tuple) and valor[0] == "rgb":
+                    tint = _tintar_color(base, valor[1])
+                else:
+                    tint = _tintar_hue(base, valor)
+                _sprites[f"enemy_{tipo}_col_{nombre_color}_{frame}"] = tint
 
 
 def _cargar_boss() -> None:
@@ -287,7 +405,7 @@ def _cargar_boss() -> None:
     """
     img = _cargar("Enemies/enemy_2_r_m.png")
     img = _escalar(img, _TAM_BOSS)
-    img = _rotar(img, 90)   # 90° CCW → la punta apunta a la izquierda
+    img = _rotar(img, -90)  # apunta a la izquierda (hacia el jugador)
     _sprites["boss_sprite"] = img
 
 
@@ -367,6 +485,16 @@ def _cargar_fx() -> None:
         img = _cargar(f"FX/proton_{i:02d}.png")
         img = _escalar_x(img, _ESCALA_PROTON)
         _sprites[nombre] = img
+
+    # Versión tintada (naranja/rojo) de los proton para las balas del boss,
+    # para distinguirlas de las balas proton azules del jugador.
+    for i in range(1, 4):
+        base   = _sprites[f"proton_{i:02d}"]
+        tinted = base.copy()
+        ovl    = pygame.Surface(tinted.get_size(), pygame.SRCALPHA)
+        ovl.fill((255, 90, 0))   # naranja intenso
+        tinted.blit(ovl, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
+        _sprites[f"proton_boss_{i:02d}"] = tinted
 
     # Exhaust: 64×64 → 50×50 → rotar 90° CCW (llama sale hacia la izquierda)
     for i in range(1, 6):

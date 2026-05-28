@@ -1,0 +1,12 @@
+debug.log
+logs.txt
+pu.sh
+CLAUDE.md
+__pycache__/
+.pytest_cache/
+*.spec
+build/
+dist/
+.venv/
+env_spacedementia/
+scores.json

@@ -164,14 +164,30 @@ class Asteroide(Obstaculo):
 
 
 def generar_campo_asteroides():
-    """Devuelve 8–15 asteroides con gaps para poder esquivar."""
+    """Devuelve 8–15 asteroides de tamaños variados con gaps para esquivar.
+
+    Mayoría pequeños/medianos y de vez en cuando uno grande. Los más
+    grandes se mueven más lento (se sienten más pesados).
+    """
     rocas = []
     n = random.randint(8, 15)
     for i in range(n):
-        x     = config.WIDTH + 40 + i * random.randint(30, 90)
-        y     = random.randint(60, config.HEIGHT - 60)
-        radio = random.randint(15, 40)
-        vel   = random.uniform(2.5, 6.5)
+        x = config.WIDTH + 40 + i * random.randint(30, 90)
+        y = random.randint(60, config.HEIGHT - 60)
+        # Categoría de tamaño: 55% pequeño, 30% mediano, 15% grande
+        categoria = random.choices(
+            ["pequeno", "mediano", "grande"],
+            weights=[55, 30, 15]
+        )[0]
+        if categoria == "pequeno":
+            radio = random.randint(14, 26)
+            vel   = random.uniform(4.0, 6.5)
+        elif categoria == "mediano":
+            radio = random.randint(30, 48)
+            vel   = random.uniform(3.0, 5.0)
+        else:  # grande
+            radio = random.randint(55, 80)
+            vel   = random.uniform(2.0, 3.5)
         rocas.append(Asteroide(x, y, radio, vel))
     return rocas
 
@@ -182,7 +198,7 @@ class ZonaInterferencia(Obstaculo):
     - Ralentiza al jugador al 50% mientras está dentro.
     - Dura 10 segundos (300 frames).
     """
-    ALTO     = 100
+    ALTO     = 180
     DURACION = 300
 
     def __init__(self):
@@ -283,29 +299,39 @@ class LluviaMeteoros(Obstaculo):
         super().__init__()
         self.vida   = self.DURACION
         self._frame = 0
-        n = random.randint(20, 30)
+        self._total = random.randint(20, 30)   # cuántos meteoros soltar en total
+        self._soltados = 0                       # cuántos van soltados
         self.meteoros: list[_Meteoro] = []
-        for i in range(n):
-            x        = float(config.WIDTH + random.randint(0, 400) + i * random.randint(10, 40))
-            y        = float(random.randint(-200, int(config.HEIGHT * 0.25)))
-            vel      = random.uniform(8, 12)
-            ang_deg  = random.uniform(30, 55)
-            ang_rad  = math.radians(ang_deg)
-            vx       = -vel * math.cos(ang_rad)
-            vy       =  vel * math.sin(ang_rad)
-            radio    = random.randint(8, 15)
-            self.meteoros.append(_Meteoro(x, y, vx, vy, radio))
+
+    def _crear_meteoro(self):
+        """Crea un meteoro nuevo entrando por la esquina superior derecha."""
+        x       = float(config.WIDTH + random.randint(0, 200))
+        y       = float(random.randint(-150, int(config.HEIGHT * 0.20)))
+        vel     = random.uniform(8, 12)
+        ang_deg = random.uniform(30, 55)
+        ang_rad = math.radians(ang_deg)
+        vx      = -vel * math.cos(ang_rad)
+        vy      =  vel * math.sin(ang_rad)
+        radio   = random.randint(8, 15)
+        self.meteoros.append(_Meteoro(x, y, vx, vy, radio))
+        self._soltados += 1
 
     def update(self):
         self._frame += 1
         self.vida   -= 1
+        # Soltar meteoros escalonados mientras dure la lluvia (cada ~5 frames)
+        if self._soltados < self._total and self.vida > 0:
+            if self._frame % 5 == 0:
+                self._crear_meteoro()
+        # Mover los meteoros existentes; quitar solo los que YA salieron
         for m in self.meteoros[:]:
             m.move()
             if m.is_dead():
                 self.meteoros.remove(m)
 
     def is_dead(self):
-        return self.vida <= 0 or not self.meteoros
+        ya_solto_todos = self._soltados >= self._total or self.vida <= 0
+        return ya_solto_todos and not self.meteoros
 
     def afectar_jugadores(self, jugadores):
         """Retorna lista de jugadores golpeados por meteoros este frame."""
@@ -363,7 +389,7 @@ class PulsoEMP(Obstaculo):
             self._golpeados.add(jid)
             if not jugador.emp_activo:
                 jugador.emp_activo = True
-                jugador.emp_timer  = 90
+                jugador.emp_timer  = 120
         return False
 
     def draw(self, screen):

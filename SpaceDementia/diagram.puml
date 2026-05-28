@@ -218,6 +218,9 @@ class Boss {
     - x: float
     - y: float
     - size: int
+    - sprite_tipo: str
+    - sprite_color: str
+    - estilo: str
     - _vida: int
     - vida_max: int
     - fase: int
@@ -227,28 +230,42 @@ class Boss {
     - _cargando: bool
     - _carga_timer: int
     - _disparo_cooldown: int
+    - _escudo_activo: bool
+    - _escudo_timer: int
+    - _laser_fase: str
+    - _laser_timer: int
+    - _muro_cooldown: int
     - disparos_pendientes: List
     - refuerzos_pendientes: int
     {static} VIDA_MAX: int
     - X_BATALLA: int
     + vida: int <<property>>
     + esta_en_fase_critica: bool <<property>>
+    + escudo_activo: bool <<property>>
+    + radio_escudo: int <<property>>
     + update(): void
     + recibir_daño(daño): bool
     + esta_muerto(): bool
+    + laser_activo_en(y, alto): bool
     + draw(screen): void
     - _actualizar_fase(): void
     - _disparar(): void
+    - _disparar_muro(): void
+    - _dibujar_escudo(screen): void
+    - _dibujar_laser(screen): void
     - _flash_rojo(screen): void
     - _dibujar_indicador_carga(screen): void
     - _dibujar_barra_vida(screen): void
 }
 
 note right of Boss
+  Estilo de ataque por mundo:
+  tirador, embestidor, rociador,
+  artillero, caotico.
+  Mecanicas: rayo laser barredor,
+  escudo temporal (inmune),
+  muro de balas con hueco.
   3 fases segun % de vida.
-  F1: disparo recto
-  F2: abanico 3 balas + refuerzos
-  F3: rafaga radial 8 dir + embestida
 end note
 
 class Bullet {
@@ -377,7 +394,16 @@ class AssetLoader <<module>> {
     {static} get_bg(): Surface
     {static} get_planet_sprite(nombre): Surface
     {static} get_asteroid_sprite(idx): Surface
+    {static} color_enemigo(tipo, mundo_id): str
 }
+
+note bottom of AssetLoader
+  Carga sprites una sola vez.
+  Genera variantes de color tintando
+  en memoria (hue-shift selectivo):
+  un color por tipo de enemigo que
+  rota segun el mundo. Sin archivos extra.
+end note
 
 abstract class Obstaculo {
     # vida: int

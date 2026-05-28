@@ -20,6 +20,7 @@ class Player:
         self._life = life
         self._score = 0
         self._monedas = 0
+        self.kills = 0
         self.jugador_id = jugador_id
         self.tema = tema or {
             "color_jugador":         (80, 160, 255),

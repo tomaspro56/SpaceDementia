@@ -32,7 +32,7 @@ class Menu:
         self._scoreboard = scoreboard
         self._frame = 0
         self._seleccion = 0
-        self._opciones = ["JUGAR", "2 JUGADORES", "PUNTAJES", "CONTROLES", "SALIR"]
+        self._opciones = ["JUGAR", "PUNTAJES", "CONTROLES", "MUTEAR", "SALIR"]
         from background import Background
         self._bg    = Background(1, tema=_FONDO_MENU)
         self._sound = SoundManager()
@@ -62,17 +62,19 @@ class Menu:
                         self._seleccion = (self._seleccion + 1) % len(self._opciones)
                         self._sound.play("menu_click")
                     elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
-                        if self._seleccion == 0:
-                            self._sound.detener_musica()
-                            return "1j"
-                        elif self._seleccion == 1:
-                            self._sound.detener_musica()
-                            return "2j"
-                        elif self._seleccion == 2:
+                        opcion = self._opciones[self._seleccion]
+                        if opcion == "JUGAR":
+                            modo = self._elegir_modo_jugadores()
+                            if modo:                 # "1j" o "2j"
+                                self._sound.detener_musica()
+                                return modo
+                        elif opcion == "PUNTAJES":
                             self._mostrar_puntajes()
-                        elif self._seleccion == 3:
+                        elif opcion == "CONTROLES":
                             self._mostrar_controles()
-                        else:
+                        elif opcion == "MUTEAR":
+                            self._sound.toggle_mute()
+                        elif opcion == "SALIR":
                             return False
                     elif event.key in (pygame.K_q, pygame.K_ESCAPE):
                         return False
@@ -126,9 +128,6 @@ class Menu:
         pygame.draw.line(self.screen, _COLOR_TITULO,
                          (cx, y_linea), (cx + surf_t.get_width(), y_linea), 2)
 
-        sub = "— 5 MUNDOS · 25 NIVELES · 5 BOSSES —"
-        surf_s = font_sub.render(sub, True, _COLOR_HUD)
-        self.screen.blit(surf_s, (config.WIDTH // 2 - surf_s.get_width() // 2, y_linea + 16))
 
     def _dibujar_opciones(self):
         font = pygame.font.SysFont("monospace", 52, bold=True)
@@ -145,7 +144,10 @@ class Menu:
             else:
                 font_op = font
 
-            surf = font_op.render(opcion, True, color)
+            texto_opcion = opcion
+            if opcion == "MUTEAR":
+                texto_opcion = "SONIDO: OFF" if self._sound.is_muted() else "SONIDO: ON"
+            surf = font_op.render(texto_opcion, True, color)
             y = cy_base + i * 85
             x = config.WIDTH // 2 - surf.get_width() // 2
             self.screen.blit(surf, (x, y))
@@ -153,6 +155,65 @@ class Menu:
             if seleccionada:
                 surf_fl = font_flecha.render(">", True, _COLOR_SEL)
                 self.screen.blit(surf_fl, (x - surf_fl.get_width() - 18, y))
+
+    # ---------------------------------------------------------------- submenús
+
+    def _elegir_modo_jugadores(self):
+        """Submenú para elegir 1 o 2 jugadores. Retorna '1j', '2j' o None."""
+        opciones = ["1 JUGADOR", "2 JUGADORES", "VOLVER"]
+        sel = 0
+        clock = pygame.time.Clock()
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return None
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        sel = (sel - 1) % len(opciones)
+                        self._sound.play("menu_click")
+                    elif event.key == pygame.K_DOWN:
+                        sel = (sel + 1) % len(opciones)
+                        self._sound.play("menu_click")
+                    elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                        if sel == 0:
+                            return "1j"
+                        elif sel == 1:
+                            return "2j"
+                        else:
+                            return None
+                    elif event.key in (pygame.K_ESCAPE, pygame.K_q):
+                        return None
+
+            self._frame += 1
+            self._bg.update()
+            self._dibujar()
+            self._dibujar_overlay_submenu(self.screen, "ELIGE MODO", opciones, sel)
+            pygame.display.flip()
+            clock.tick(30)
+
+    def _dibujar_overlay_submenu(self, screen, titulo, opciones, sel):
+        """Overlay casi opaco (negro 95%) con título y opciones centradas."""
+        velo = pygame.Surface((config.WIDTH, config.HEIGHT), pygame.SRCALPHA)
+        velo.fill((2, 3, 10, 242))   # ~95% opaco → tapa el menú de atrás
+        screen.blit(velo, (0, 0))
+
+        font_t = pygame.font.SysFont("monospace", 60, bold=True)
+        font_o = pygame.font.SysFont("monospace", 44, bold=True)
+
+        surf_t = font_t.render(titulo, True, (0, 255, 200))
+        screen.blit(surf_t, (config.WIDTH // 2 - surf_t.get_width() // 2,
+                             config.HEIGHT // 2 - 200))
+
+        for i, op in enumerate(opciones):
+            color = (0, 255, 200) if i == sel else (130, 160, 205)
+            surf = font_o.render(op, True, color)
+            x = config.WIDTH // 2 - surf.get_width() // 2
+            y = config.HEIGHT // 2 - 60 + i * 75
+            screen.blit(surf, (x, y))
+            if i == sel:
+                fl = font_o.render(">", True, (0, 255, 200))
+                screen.blit(fl, (x - fl.get_width() - 24, y))
 
     # ---------------------------------------------------------------- puntajes
 
@@ -195,7 +256,7 @@ class Menu:
 
             # Overlay del selector
             velo = pygame.Surface((config.WIDTH, config.HEIGHT), pygame.SRCALPHA)
-            velo.fill((0, 0, 10, 180))
+            velo.fill((2, 3, 10, 242))
             self.screen.blit(velo, (0, 0))
 
             surf_t = font_t.render("PUNTAJES", True, (0, 255, 200))

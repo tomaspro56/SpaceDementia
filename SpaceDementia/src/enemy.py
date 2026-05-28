@@ -12,8 +12,9 @@ import config
 class Enemy(ABC):
     """Clase base para todos los enemigos espaciales."""
 
-    PUNTOS  = 10
-    MONEDAS = 5
+    PUNTOS       = 10
+    MONEDAS      = 5
+    TIPO_ENEMIGO = "normal"
 
     def __init__(self, x, y, size, speed, tema=None):
         self.x      = float(x)
@@ -96,8 +97,9 @@ class Enemy(ABC):
 class EnemigoNormal(Enemy):
     """Drone básico. Avanza recto, disparo recto aleatorio."""
 
-    PUNTOS  = 10
-    MONEDAS = 5
+    PUNTOS       = 10
+    MONEDAS      = 3
+    TIPO_ENEMIGO = "normal"
 
     def _get_tipo_sprite(self):
         return "1"
@@ -106,8 +108,9 @@ class EnemigoNormal(Enemy):
 class EnemigoAgil(Enemy):
     """Caza rápido. Movimiento zigzag vertical."""
 
-    PUNTOS  = 20
-    MONEDAS = 10
+    PUNTOS       = 20
+    MONEDAS      = 5
+    TIPO_ENEMIGO = "agil"
 
     def move(self):
         super().move()
@@ -122,8 +125,9 @@ class EnemigoAgil(Enemy):
 class EnemigoRafaga(Enemy):
     """Drone que dispara en ráfagas de 3 balas seguidas."""
 
-    PUNTOS  = 30
-    MONEDAS = 15
+    PUNTOS       = 30
+    MONEDAS      = 7
+    TIPO_ENEMIGO = "rafaga"
 
     def __init__(self, x, y, size, speed, tema=None):
         super().__init__(x, y, size, speed, tema)
@@ -151,8 +155,9 @@ class EnemigoRafaga(Enemy):
 class EnemigoApuntador(Enemy):
     """Caza que apunta directamente al jugador más cercano."""
 
-    PUNTOS  = 25
-    MONEDAS = 12
+    PUNTOS       = 25
+    MONEDAS      = 6
+    TIPO_ENEMIGO = "apuntador"
 
     def __init__(self, x, y, size, speed, tema=None):
         super().__init__(x, y, size, speed, tema)
@@ -207,8 +212,9 @@ class EnemigoKamikaze(Enemy):
     shoot_frame() para no disparar nunca.
     """
 
-    PUNTOS  = 35
-    MONEDAS = 18
+    PUNTOS       = 35
+    MONEDAS      = 9
+    TIPO_ENEMIGO = "kamikaze"
 
     def __init__(self, x, y, size, speed, tema=None):
         super().__init__(x, y, size, speed, tema)

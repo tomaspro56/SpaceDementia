@@ -23,31 +23,31 @@ class Tienda:
             "id":     "escudo",
             "nombre": "Escudo Protector",
             "desc":   "Absorbe 1 golpe sin perder vida.",
-            "precio": 150,
+            "precio": 200,
         },
         {
             "id":     "doble",
             "nombre": "Disparo Doble",
             "desc":   "2 balas paralelas  (permanente).",
-            "precio": 300,
+            "precio": 400,
         },
         {
             "id":     "plasma",
             "nombre": "Disparo Plasma",
             "desc":   "Balas de 2 dano, tipo proton  (permanente).",
-            "precio": 500,
+            "precio": 750,
         },
         {
             "id":     "vida",
             "nombre": "Vida Extra",
             "desc":   "+1 vida  (maximo 5).",
-            "precio": 200,
+            "precio": 320,
         },
         {
             "id":     "bomba",
             "nombre": "Mega Bomba",
             "desc":   "Tecla B/G: destruye todo en pantalla  (max 3).",
-            "precio": 250,
+            "precio": 380,
         },
     ]
 
@@ -55,7 +55,7 @@ class Tienda:
         "id":     "revivir",
         "nombre": "Revivir Companero",
         "desc":   "Revive al otro jugador con 1 vida.",
-        "precio": 300,
+        "precio": 420,
     }
 
     # ── Colores ────────────────────────────────────────────────────────────────
@@ -181,7 +181,9 @@ class Tienda:
     def _draw_titulo(self, screen):
         if self.game.modo_2j:
             color_j = (80, 160, 255) if self.jugador_num == 1 else (255, 80, 80)
-            titulo_texto = f"TIENDA  —  JUGADOR {self.jugador_num}"
+            nombre_jug = (self.game.nombre1 if self.jugador_num == 1
+                          else self.game.nombre2)
+            titulo_texto = f"TIENDA  —  {nombre_jug}"
         else:
             color_j = self._C_TITULO
             titulo_texto = "TIENDA"

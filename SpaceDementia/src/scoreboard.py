@@ -12,7 +12,9 @@ Formato interno de cada tabla:
 import json
 import os
 
-_ARCHIVO = os.path.join(os.path.dirname(__file__), "..", "scores.json")
+from rutas import ruta_datos
+
+_ARCHIVO = ruta_datos("scores.json")
 _MAX_ENTRADAS = 10
 _MODOS = ("1j", "2j")
 

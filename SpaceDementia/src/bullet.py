@@ -87,8 +87,12 @@ class Bullet:
             pygame.draw.circle(screen, (255, 255, 255), (x, y), 7)
 
     def _dibujar_boss(self, screen):
-        """Bala del boss: sprite proton animado."""
-        sprite = asset_loader.get_proton_frame(self.frame)
+        # Las balas del boss van tintadas (naranja); las del jugador (plasma
+        # proton) siguen azules.
+        if self.es_bala_boss:
+            sprite = asset_loader.get_proton_boss_frame(self.frame)
+        else:
+            sprite = asset_loader.get_proton_frame(self.frame)
         w, h = sprite.get_size()
         screen.blit(sprite, (int(self.x) - w // 2, int(self.y) - h // 2))
 

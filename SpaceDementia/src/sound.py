@@ -8,15 +8,19 @@ import os
 import struct
 
 import pygame
+from rutas import ruta_recurso
 
-_AUDIO_DIR = os.path.join(os.path.dirname(__file__), "..", "assets", "Audio")
+_AUDIO_DIR = ruta_recurso("assets", "Audio")
 
 
 class SoundManager:
+    # Estado de muteo COMPARTIDO entre todas las instancias
+    _muted_global = False
+
     def __init__(self):
         self._sonidos: dict = {}
         self._activo = False
-        self._muted  = False
+        self._muted  = SoundManager._muted_global
         self._disparo_cooldown = 0
 
         try:
@@ -29,11 +33,15 @@ class SoundManager:
 
     def toggle_mute(self) -> bool:
         """Alterna mute on/off. Retorna True si quedó muteado."""
-        self._muted = not self._muted
+        return self.set_muted(not self._muted)
+
+    def set_muted(self, muted: bool) -> bool:
+        """Fija el estado de muteo explícitamente. Retorna el estado final."""
+        self._muted = bool(muted)
+        SoundManager._muted_global = self._muted
         if self._activo:
-            vol = 0.0 if self._muted else 0.35
             try:
-                pygame.mixer.music.set_volume(vol)
+                pygame.mixer.music.set_volume(0.0 if self._muted else 0.65)
             except Exception:
                 pass
         return self._muted
@@ -82,12 +90,18 @@ class SoundManager:
         self._sonidos["oleada_completa"]  = self._cargar("oleada_completa.wav")
 
         _VOLUMENES = {
-            "disparo":          0.15,
-            "disparo_p2":       0.15,
-            "explosion":        0.25,
-            "explosion_grande": 0.5,
-            "enemigo_muerto":   0.2,
-            "boss_alerta":      0.6,
+            "disparo":          0.12,
+            "disparo_p2":       0.12,
+            "explosion":        0.22,
+            "explosion_grande": 0.40,
+            "enemigo_muerto":   0.18,
+            "boss_alerta":      0.30,
+            "powerup":          0.35,
+            "nivel_up":         0.40,
+            "compra":           0.40,
+            "sin_fondos":       0.35,
+            "menu_click":       0.30,
+            "oleada_completa":  0.35,
         }
         for nombre, sonido in self._sonidos.items():
             if sonido is not None:
@@ -127,7 +141,7 @@ class SoundManager:
         ruta = os.path.join(_AUDIO_DIR, archivo)
         try:
             pygame.mixer.music.load(ruta)
-            pygame.mixer.music.set_volume(0.35)
+            pygame.mixer.music.set_volume(0.0 if self._muted else 0.65)
             pygame.mixer.music.play(-1)
         except Exception:
             pass

@@ -20,6 +20,9 @@ from player import Player
 from sound import SoundManager
 from worlds import obtener_mundo
 
+# DEBUG: poner en False antes de entregar. Activa atajos de salto de nivel.
+DEBUG_MODE = False
+
 # ── Constantes de disparo del jugador ────────────────────────────────────────
 _MAX_BALAS      = 5
 _SHOOT_COOLDOWN = 8
@@ -29,8 +32,8 @@ _FORMACIONES = ["aleatoria", "linea", "v_invertida", "pinza"]
 
 # ── Textos de aviso de eventos ────────────────────────────────────────────────
 _AVISOS = {
-    "asteroides":    "LLUVIA DE ASTEROIDES",
-    "agujero":       "ANOMALIA GRAVITATORIA",
+    "asteroides":    "ZONA DE ASTEROIDES",
+    "agujero":       "AGUJERO NEGRO",
     "interferencia": "INTERFERENCIA DETECTADA",
     "gravedad":      "INVERSION GRAVITACIONAL",
     "meteoros":      "LLUVIA DE METEOROS",
@@ -324,6 +327,19 @@ class Game:
                     self._usar_mega_bomba(self.player1)
                 if key == pygame.K_g and self.modo_2j and self.player2:
                     self._usar_mega_bomba(self.player2)
+                # ── DEBUG: atajos de salto (quitar antes de entregar) ──
+                if DEBUG_MODE:
+                    mapa_mundos = {
+                        pygame.K_1: 1, pygame.K_2: 2, pygame.K_3: 3,
+                        pygame.K_4: 4, pygame.K_5: 5,
+                    }
+                    if key in mapa_mundos:
+                        self._debug_saltar_a_boss(mapa_mundos[key])
+                    elif key == pygame.K_0:
+                        self._debug_recargar()
+                    elif key == pygame.K_k and self.estado == "boss":
+                        if self.boss is not None:
+                            self.boss.vida = 0
         elif self.estado == "tienda":
             if self._tienda:
                 self._tienda.handle_key(key)
@@ -394,7 +410,14 @@ class Game:
             self._update_textos()
             self.background.update()
             if self.estado_timer <= 0:
-                if self.nivel < 4:
+                # Abrir tienda en momentos clave:
+                #  - tras nivel 4 (justo antes del boss del nivel 5)
+                #  - tras el boss (nivel 5), antes de pasar al siguiente mundo
+                #  Esto cubre también "inicio de mundo nuevo" porque el último
+                #  evento del mundo anterior fue su boss.
+                abrir_tienda = (self.nivel < 5) or \
+                               (self.nivel == 5 and self.mundo_id < 5)
+                if abrir_tienda:
                     self._tienda_turno = 1
                     self._tienda = Tienda(self, jugador_num=1)
                     self.estado  = "tienda"
@@ -591,7 +614,14 @@ class Game:
         if tipo == "asteroides":
             self.obstaculos.extend(generar_campo_asteroides())
         elif tipo == "agujero":
-            self.obstaculos.append(AgujeronNegro())
+            cantidad = random.choices([1, 2, 3], weights=[55, 30, 15])[0]
+            for _ in range(cantidad):
+                ag = AgujeronNegro()
+                # Variar el tamaño: factor entre 0.7x y 1.4x del radio base
+                factor = random.uniform(0.7, 1.4)
+                ag.RADIO          = int(ag.RADIO * factor)
+                ag.RADIO_GRAVEDAD = int(ag.RADIO_GRAVEDAD * factor)
+                self.obstaculos.append(ag)
         elif tipo == "interferencia":
             self.obstaculos.append(ZonaInterferencia())
         elif tipo == "gravedad":
@@ -704,7 +734,7 @@ class Game:
                 ClaseEnemigo   = _CLASE_POR_TIPO.get(tipo, EnemigoNormal)
                 e              = ClaseEnemigo(config.WIDTH + 30, y, 30, speed, tema=self.config)
                 print(f"[SPAWN] mundo={self.mundo_id} nivel={self.nivel} tipo={tipo} clase={ClaseEnemigo.__name__}", flush=True)
-                e.color_sprite = _COLOR_POR_TIPO.get(tipo, "r")
+                e.color_sprite = asset_loader.color_enemigo(e.TIPO_ENEMIGO, self.mundo_id)
 
                 if self.mundo_id >= 4 and isinstance(e, (EnemigoNormal, EnemigoRafaga)) and random.random() < 0.3:
                     e.vida = 2
@@ -794,7 +824,7 @@ class Game:
     def _daño_jugador(self, player: Player):
         """Aplica daño al jugador; consume escudo si existe."""
         if player.consumir_escudo():
-            self._texto_flotante("ESCUDO!", int(player.x),
+            self._texto_flotante("ESCUDO DESTRUIDO!", int(player.x),
                                   int(player.y) - 35, (80, 200, 255))
             return
         self._combo       = 0
@@ -836,9 +866,12 @@ class Game:
                         shooter.score            += enemy.PUNTOS
                         self.kills_actuales      += 1
                         self.enemigos_eliminados += 1
+                        if shooter is not None:
+                            shooter.kills += 1
                         self._combo              += 1
                         self._combo_timer         = 90
-                        ganadas = enemy.MONEDAS + max(0, self._combo - 1)
+                        bonus_combo = min(3, self._combo // 5)  # +1 cada 5 de combo, máx +3
+                        ganadas = enemy.MONEDAS + bonus_combo
                         shooter.monedas          += ganadas
                         self._texto_flotante(
                             f"+{ganadas}", int(enemy.x), int(enemy.y) - 20,
@@ -899,10 +932,45 @@ class Game:
                 self.boss.refuerzos_pendientes -= 1
                 y = random.randint(100, config.HEIGHT - 100)
                 e = EnemigoNormal(config.WIDTH + 30, y, 30, 4, tema=self.config)
-                e.color_sprite = asset_loader.COLOR_ENEMIGO_POR_MUNDO.get(self.mundo_id, "r")
+                e.color_sprite = asset_loader.color_enemigo(type(e).TIPO_ENEMIGO, self.mundo_id)
                 self.enemies.append(e)
 
+            # ── Refuerzos propios del boss fight (en TODAS las fases) ──
+            # Cadencia de spawn según el mundo: mundos altos = más frecuente.
+            intervalo_ref = max(90, 200 - self.mundo_id * 20)
+            if self._frames_jugados % intervalo_ref == 0:
+                tipos_disp = list(self.config.get("tipos_oleada", ["normal"]))
+                # Limitar cuántos enemigos extra hay a la vez para no saturar
+                if len(self.enemies) < 6:
+                    tipo = random.choice(tipos_disp)
+                    self._spawn_enemigo_refuerzo(tipo)
+
+            # ── Anomalías durante la pelea ──
+            # Decrementar el aviso de anomalía también durante el boss
+            if self._aviso_timer > 0:
+                self._aviso_timer -= 1
+            # Cadencia más espaciada; mundos altos generan más seguido.
+            intervalo_anom = max(300, 700 - self.mundo_id * 60)
+            if self._frames_jugados % intervalo_anom == 0 and len(self.obstaculos) < 3:
+                nombre_anom = self._spawn_anomalia_boss()
+                if nombre_anom:
+                    self._aviso_texto  = nombre_anom
+                    self._aviso_timer  = 45
+                    self.sound.play("boss_alerta")
+
             for bullet in self.bullets[:]:
+                # Si el escudo está activo, colisión contra el ESCUDO (radio mayor)
+                if self.boss.escudo_activo:
+                    dx = bullet.x - self.boss.x
+                    dy = bullet.y - self.boss.y
+                    dist = (dx * dx + dy * dy) ** 0.5
+                    if dist <= self.boss.radio_escudo:
+                        # Impacto en el escudo: la bala se desintegra, sin daño
+                        self._crear_impacto(bullet.x, bullet.y)
+                        if not bullet.es_mega and bullet in self.bullets:
+                            self.bullets.remove(bullet)
+                        continue
+                # Colisión normal con el cuerpo del boss
                 if self.check_collision(bullet, self.boss):
                     self._crear_impacto(bullet.x, bullet.y)
                     shooter = self._get_player(bullet.jugador_id)
@@ -916,6 +984,11 @@ class Game:
             for p in self._jugadores_vivos():
                 if self.check_attack(self.boss, p):
                     self._daño_jugador(p)
+
+            for jug in self._lista_jugadores():
+                if jug.life > 0 and self.boss is not None:
+                    if self.boss.laser_activo_en(jug.y, jug.size):
+                        self._daño_jugador(jug)
 
         # Balas enemigas → jugadores
         for b in self.enemy_bullets[:]:
@@ -936,6 +1009,7 @@ class Game:
         self._update_textos()
         self._update_impact_particles()
         self._update_propulsor()
+        self._update_obstaculos()
         if self._damage_flash > 0:
             self._damage_flash -= 1
         if self.gravedad_timer > 0:
@@ -958,6 +1032,35 @@ class Game:
             self._gameover_sel = 0
             self.partida_terminada = True
 
+    def _spawn_enemigo_refuerzo(self, tipo):
+        """Crea un enemigo de refuerzo del tipo dado durante la pelea de boss."""
+        y = random.randint(100, config.HEIGHT - 100)
+        vel = self.config.get("vel_enemigo_base", 4)
+        clase = {
+            "normal":    EnemigoNormal,
+            "agil":      EnemigoAgil,
+            "rafaga":    EnemigoRafaga,
+            "apuntador": EnemigoApuntador,
+            "kamikaze":  EnemigoKamikaze,
+        }.get(tipo, EnemigoNormal)
+        e = clase(config.WIDTH + 30, y, 30, vel, tema=self.config)
+        e.color_sprite = asset_loader.color_enemigo(type(e).TIPO_ENEMIGO, self.mundo_id)
+        self.enemies.append(e)
+
+    def _spawn_anomalia_boss(self):
+        """Genera una anomalía aleatoria durante la pelea. Retorna el nombre
+        del aviso para mostrar en pantalla, o None."""
+        opciones = [
+            (AgujeronNegro,      "AGUJERO NEGRO"),
+            (ZonaInterferencia,  "INTERFERENCIA DETECTADA"),
+            (PulsoEMP,           "PULSO EMP"),
+        ]
+        if self.mundo_id >= 3:
+            opciones.append((LluviaMeteoros, "LLUVIA DE METEOROS"))
+        clase, nombre = random.choice(opciones)
+        self.obstaculos.append(clase())
+        return nombre
+
     def _boss_muerto(self, shooter: Player):
         """Maneja la muerte del boss: explosiones, recompensa y transición."""
         for _ in range(6):
@@ -967,8 +1070,9 @@ class Game:
                 Explosion(self.boss.x + ox, self.boss.y + oy, "grande")
             )
         self.enemigos_eliminados += 1
+        shooter.kills   += 1
         shooter.score   += 500
-        shooter.monedas += 100
+        shooter.monedas += 60
         self._texto_flotante("+100", int(self.boss.x), int(self.boss.y) - 50,
                              (255, 220, 0))
         self._texto_flotante("BOSS ELIMINADO", int(self.boss.x),
@@ -1101,11 +1205,19 @@ class Game:
             player.score             += e.PUNTOS
             self.kills_actuales      += 1
             self.enemigos_eliminados += 1
+            player.kills             += 1
             ganadas = e.MONEDAS
             player.monedas      += ganadas
             self.explosions.append(Explosion(e.x, e.y, "grande"))
         self.enemies.clear()
         self.enemy_bullets.clear()
+        # La bomba también daña al boss (sin destruirlo): 18 de vida
+        if self.boss is not None and not self.boss.esta_muerto():
+            DANO_BOMBA_BOSS = 18
+            murio = self.boss.recibir_daño(DANO_BOMBA_BOSS)
+            self.explosions.append(Explosion(self.boss.x, self.boss.y, "grande"))
+            if murio:
+                self._boss_muerto(player)
         self._bomba_flash = 10
         self.sound.play("explosion")
 
@@ -1255,6 +1367,32 @@ class Game:
             self._draw_overlay_centrado("! GRAVEDAD INVERTIDA !",
                                         config.HEIGHT // 2 + 80, 34, (200, 80, 255))
 
+    # ------------------------------------------------------------------ DEBUG
+
+    def _debug_saltar_a_boss(self, mundo_id):
+        """DEBUG: salta directo al boss del mundo dado."""
+        self.mundo_id = mundo_id
+        self.nivel = 5
+        self.config = obtener_mundo(mundo_id)
+        self.enemies.clear()
+        self.bullets.clear()
+        self.enemy_bullets.clear()
+        self.obstaculos.clear()
+        self._debug_recargar()
+        self.sound.detener_musica()
+        self.sound.iniciar_musica("boss")
+        self.boss   = Boss(float(config.WIDTH + 100), float(config.HEIGHT // 2),
+                           tema=self.config)
+        self.estado = "boss"
+        print(f"[DEBUG] Saltando al boss del mundo {mundo_id}", flush=True)
+
+    def _debug_recargar(self):
+        """DEBUG: rellena vidas y monedas de los jugadores."""
+        for jug in self._lista_jugadores():
+            jug.life    = 3
+            jug.monedas = 9999
+        print("[DEBUG] Vidas y monedas recargadas", flush=True)
+
     # ------------------------------------------------------------------ HUD
 
     def _draw_hud(self):
@@ -1328,11 +1466,20 @@ class Game:
         # ── Centro ────────────────────────────────────────────────────────
         self._draw_centro_hud(color)
 
-        # EMP activo: avisar al jugador afectado
-        for p in self._lista_jugadores():
-            if p.emp_activo:
-                label = f"J{p.jugador_id} EMP ({p.emp_timer // 30 + 1}s)"
-                self._draw_overlay_centrado(label, config.HEIGHT // 2 + 80, 28, (50, 150, 255))
+        # EMP activo: avisar con nombre del jugador y qué le pasa
+        afectados = [p for p in self._lista_jugadores() if p.emp_activo]
+        if afectados:
+            def _nombre_jug(p):
+                return self.nombre1 if p.jugador_id == 1 else self.nombre2
+            segs = max(p.emp_timer // 30 + 1 for p in afectados)
+            if len(afectados) == 1:
+                quien = _nombre_jug(afectados[0])
+                label = f"{quien} SIN DISPARO POR EMP ({segs}s)"
+            else:
+                nombres = " y ".join(_nombre_jug(p) for p in afectados)
+                label = f"{nombres} SIN DISPARO POR EMP ({segs}s)"
+            self._draw_overlay_centrado(label, config.HEIGHT // 2 + 80, 26,
+                                        (50, 150, 255))
 
         if self._texto_oleada_timer > 0 and self.estado == "jugando":
             alpha = min(255, self._texto_oleada_timer * 7)
@@ -1621,7 +1768,8 @@ class Game:
         for nombre, val in activos.items():
             es_temporal = nombre in player.powerups_temporales
             c = (80, 200, 255) if es_temporal else color
-            s = font.render(f" {nombre} ", True, c)
+            etiqueta = "ESCUDO ACTIVO" if nombre == "ESCUDO" else nombre
+            s = font.render(f" {etiqueta} ", True, c)
             if lado == "izq":
                 x = 12
             else:
@@ -1734,7 +1882,7 @@ class Game:
         elif self.estado == "victoria":
             self._draw_overlay_centrado("VICTORIA",
                                         config.HEIGHT // 2 - 100, 88, (255, 220, 0))
-            self._draw_overlay_centrado("Los 5 mundos han sido conquistados",
+            self._draw_overlay_centrado("Todas las amenazas intergalacticas han sido eliminadas",
                                         config.HEIGHT // 2 + 10, 32, (80, 255, 120))
             if self.modo_2j and self.player2:
                 self._draw_overlay_centrado(
@@ -1749,8 +1897,9 @@ class Game:
         # Aviso EMP en modo 1j
         if not self.modo_2j and self.player1.emp_activo:
             seg = self.player1.emp_timer // 30 + 1
-            self._draw_overlay_centrado(f"EMP — disparo bloqueado ({seg}s)",
-                                        config.HEIGHT // 2 + 80, 28, (50, 150, 255))
+            self._draw_overlay_centrado(
+                f"{self.nombre1} SIN DISPARO POR EMP ({seg}s)",
+                config.HEIGHT // 2 + 80, 26, (50, 150, 255))
 
     def _draw_textos_flotantes(self):
         font = pygame.font.SysFont("monospace", 20, bold=True)
@@ -1825,40 +1974,80 @@ class Game:
                          (px + 30, py + 90), (px + panel_w - 30, py + 90), 1)
 
         # Estadísticas
+        segundos   = self._frames_jugados // 30
+        tiempo_str = f"{segundos // 60:02d}:{segundos % 60:02d}"
+
         font_s  = pygame.font.SysFont("monospace", 24)
         c_label = (140, 155, 175)
         c_valor = (220, 235, 255)
 
-        score_total   = self.player1.score
-        monedas_total = self.player1.monedas
         if self.modo_2j and self.player2:
-            score_total   += self.player2.score
-            monedas_total += self.player2.monedas
+            # ── Modo 2 jugadores: dos columnas con stats por jugador ──
+            font_col = pygame.font.SysFont("monospace", 22, bold=True)
+            nombre1 = self.nombre1
+            nombre2 = self.nombre2
 
-        segundos   = self._frames_jugados // 30
-        tiempo_str = f"{segundos // 60:02d}:{segundos % 60:02d}"
+            col1_x = px + 55
+            col2_x = px + panel_w // 2 + 20
+            y_s = py + 108
 
-        stats = [
-            ("Puntuacion",       str(score_total)),
-            ("Mundo / Nivel",    f"{self.mundo_id}  /  {self.nivel}"),
-            ("Enemigos caidos",  str(self.enemigos_eliminados)),
-            ("Monedas",          str(monedas_total)),
-            ("Tiempo",           tiempo_str),
-        ]
+            h1 = font_col.render(nombre1, True, (80, 180, 255))
+            h2 = font_col.render(nombre2, True, (255, 120, 120))
+            self.screen.blit(h1, (col1_x, y_s))
+            self.screen.blit(h2, (col2_x, y_s))
+            y_s += 36
 
-        y_s = py + 108
-        for label, valor in stats:
-            s_l = font_s.render(label, True, c_label)
-            s_v = font_s.render(valor, True, c_valor)
-            self.screen.blit(s_l, (px + 55, y_s))
-            self.screen.blit(s_v, (px + panel_w - 55 - s_v.get_width(), y_s))
-            # Puntos suspensivos entre label y valor
-            x_ini = px + 55 + s_l.get_width() + 6
-            x_fin = px + panel_w - 55 - s_v.get_width() - 6
-            mid_y = y_s + s_l.get_height() // 2 + 1
-            for xd in range(x_ini, x_fin, 7):
-                pygame.draw.circle(self.screen, (55, 65, 85), (xd, mid_y), 1)
-            y_s += 44
+            filas_p1 = [
+                ("Puntos",  str(self.player1.score)),
+                ("Kills",   str(self.player1.kills)),
+                ("Monedas", str(self.player1.monedas)),
+            ]
+            filas_p2 = [
+                ("Puntos",  str(self.player2.score)),
+                ("Kills",   str(self.player2.kills)),
+                ("Monedas", str(self.player2.monedas)),
+            ]
+            for (l1, v1), (l2, v2) in zip(filas_p1, filas_p2):
+                t1 = font_s.render(f"{l1}: {v1}", True, c_valor)
+                t2 = font_s.render(f"{l2}: {v2}", True, c_valor)
+                self.screen.blit(t1, (col1_x, y_s))
+                self.screen.blit(t2, (col2_x, y_s))
+                y_s += 32
+
+            y_s += 10
+            score_total = self.player1.score + self.player2.score
+            globales = [
+                ("Puntuacion total", str(score_total)),
+                ("Mundo / Nivel",    f"{self.mundo_id}  /  {self.nivel}"),
+                ("Tiempo",           tiempo_str),
+            ]
+            for label, valor in globales:
+                s_l = font_s.render(label, True, c_label)
+                s_v = font_s.render(valor, True, c_valor)
+                self.screen.blit(s_l, (px + 55, y_s))
+                self.screen.blit(s_v, (px + panel_w - 55 - s_v.get_width(), y_s))
+                y_s += 34
+        else:
+            # ── Modo 1 jugador: lista simple ──
+            stats = [
+                ("Puntuacion",      str(self.player1.score)),
+                ("Mundo / Nivel",   f"{self.mundo_id}  /  {self.nivel}"),
+                ("Enemigos caidos", str(self.enemigos_eliminados)),
+                ("Monedas",         str(self.player1.monedas)),
+                ("Tiempo",          tiempo_str),
+            ]
+            y_s = py + 108
+            for label, valor in stats:
+                s_l = font_s.render(label, True, c_label)
+                s_v = font_s.render(valor, True, c_valor)
+                self.screen.blit(s_l, (px + 55, y_s))
+                self.screen.blit(s_v, (px + panel_w - 55 - s_v.get_width(), y_s))
+                x_ini = px + 55 + s_l.get_width() + 6
+                x_fin = px + panel_w - 55 - s_v.get_width() - 6
+                mid_y = y_s + s_l.get_height() // 2 + 1
+                for xd in range(x_ini, x_fin, 7):
+                    pygame.draw.circle(self.screen, (55, 65, 85), (xd, mid_y), 1)
+                y_s += 44
 
         pygame.draw.line(self.screen, (70, 30, 30),
                          (px + 30, y_s + 6), (px + panel_w - 30, y_s + 6), 1)

@@ -1,0 +1,18 @@
+# Cómo generar el ejecutable (desde PowerShell en Windows)
+#
+# 1. Instalar PyInstaller (una sola vez):
+#    pip install pyinstaller
+#
+# 2. Desde la carpeta SpaceDementia, generar el .exe:
+#    pyinstaller --onefile --windowed --name SpaceDementia ^
+#      --add-data "assets;assets" ^
+#      src/main.py
+#
+# 3. El ejecutable queda en dist/SpaceDementia.exe
+#    Se puede mover a cualquier carpeta; el scores.json se creará junto a él.
+#
+# Notas:
+#  --onefile   : todo en un solo .exe
+#  --windowed  : sin consola negra de fondo
+#  --add-data "assets;assets" : incluye los sprites/audio dentro del .exe
+#    (en Windows el separador es ; ; en Linux/Mac sería :)
