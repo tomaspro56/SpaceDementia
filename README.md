@@ -149,10 +149,14 @@ módulo.
 
 ## Créditos
 
+- **Concepto original y juego base:** profesor Juan David Navarro (ITM).
+  El prototipo inicial usaba figuras geométricas básicas; la versión actual
+  fue desarrollada desde esa base con sprites profesionales, arquitectura
+  OOP completa, y todas las mecánicas y sistemas descritos arriba.
+- **Desarrollo y arquitectura técnica:** Tomás Pérez
 - **Sprites:** SpaceRage Asset Pack por Ravenmore (itch.io)
 - **Música:** Sci-Fi Music Pack Vol. 2 (itch.io)
 - **Efectos de sonido:** Retro Sci-Fi Sound Fx + Interface Bleeps (itch.io)
-- **Desarrollo:** Tomás Pérez, Yesica Caro, Juan Manuel Castaño y
-  Luis Daniel Zuluaga
-- **Contexto:** Instituto Tecnológico Metropolitano (ITM), Medellín —
-  Lógica de Programación, 2026
+- **Contexto académico:** Proyecto final de Lógica de Programación — ITM,
+  Medellín (2026). Equipo original: Tomás Pérez, Yesica Caro,
+  Juan Manuel Castaño y Luis Daniel Zuluaga.
